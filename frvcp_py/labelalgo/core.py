@@ -136,15 +136,17 @@ class PCCMLabel(object):
     return path
   
   def get_charging_amounts(self):
-    if self.last_visited_cs is None:
-      return []
 
+    if self.last_visited_cs is None:
+      return [] # no visits to CS
+
+    # charge amount at last visited CS
     charge_amts = [(self.energy_consumed_since_last_cs + 
       self.get_first_supp_pt_soc - 
       self.soc_arr_to_last_cs)]
-
+      
+    # computation of other charge amounts (if any)
     curr_label = self
-
     while True:
       s_last_vis_cs = curr_label.last_visited_cs
 
@@ -219,3 +221,27 @@ class PCCMLabel(object):
     return self.compare_to(other) >= 0
 
   # endregion
+
+class FRVCPInstance(object):
+  #TODO
+  def __init__(self):
+    # more TODO
+    return
+
+class PCCMAlgorithm(object):
+  """The labeling algorithm to solve the FRVCP."""
+  # TODO move to separate class
+  def __init__(self, instance, init_soc, nodes, adjacency_list,
+    node_local_id_dep, node_local_id_arr, max_slope
+  ):
+    self.instance = instance
+    self.init_soc = init_soc
+    self.nodes = nodes
+    self.adjacency_list = adjacency_list
+    self.node_local_id_dep = node_local_id_dep
+    self.node_local_id_arr = node_local_id_arr
+    self.max_slope = max_slope
+
+  def run_multiobj_shortest_path_algo(self, dominance, stop_at_first):
+    #TODO
+    return
