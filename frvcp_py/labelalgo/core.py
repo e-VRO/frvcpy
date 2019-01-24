@@ -14,6 +14,39 @@ class Node(object):
   def __str__(self):
     return f'({self.node_id}; {self.type})'
 
+from queue import PriorityQueue
+import heapq
+class PriorityQueueUpdatable(PriorityQueue):
+  def __init__(self):
+    self.pq = []                         # list of entries arranged in a heap
+    self.entry_finder = {}               # mapping of tasks to entries
+    self.REMOVED = '<removed-task>'      # placeholder for a removed task
+    import itertools
+    self.counter = itertools.count()     # unique sequence count
+
+  def add_task(self, task, priority=0):
+      'Add a new task or update the priority of an existing task'
+      if task in self.entry_finder:
+          self.remove_task(task)
+      count = next(self.counter)
+      entry = [priority, count, task]
+      self.entry_finder[task] = entry
+      heapq.heappush(self.pq, entry)
+
+  def remove_task(self, task):
+      'Mark an existing task as REMOVED.  Raise KeyError if not found.'
+      entry = self.entry_finder.pop(task)
+      entry[-1] = self.REMOVED
+
+  def pop_task(self):
+      'Remove and return the lowest priority task. Raise KeyError if empty.'
+      while self.pq:
+          priority, count, task = heapq.heappop(self.pq)
+          if task is not self.REMOVED:
+              del self.entry_finder[task]
+              return task
+      raise KeyError('pop from an empty priority queue')
+
 class PCCMLabel(object):
   """Class defining a label for the labeling algorithm of
   Froger (2018) for the fixed-route vehicle charging problem.
@@ -224,6 +257,9 @@ class PCCMLabel(object):
 
 class FRVCPInstance(object):
   #TODO
-  def __init__(self):
+  def __init__(self, energy_matrix, time_matrix, process_times):
+    self.energy_matrix = energy_matrix
+    self.time_matrix = time_matrix
+    self.process_times = process_times
     # more TODO
     return
