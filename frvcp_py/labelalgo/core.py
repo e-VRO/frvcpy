@@ -14,9 +14,23 @@ class Node(object):
   def __str__(self):
     return f'({self.node_id}; {self.type})'
 
+class HeapE(object):
+  """Represents an element in the labeling algorithm's heap.
+  Since the data type used for heap nodes in the labeling
+  algorithm is just int, this object is largely unnecessary.
+  We keep it here to maintain consistency"""
+  def __init__(self, data):
+    self.data = data
+
 from queue import PriorityQueue
 import heapq
-class PriorityQueueUpdatable(PriorityQueue):
+class PseudoFibonacciHeap(PriorityQueue):
+  """Defines a priority queue whose keys can be updated.
+  This mimics the Fibonacci heap object used in the original labeling
+  algorithm, allowing for increase-/decrease-key functionality.
+  However, the underlying implementation is not actually a Fibonacci 
+  heap, so it lacks the nice theoretical advantages.
+  """
   def __init__(self):
     self.pq = []                         # list of entries arranged in a heap
     self.entry_finder = {}               # mapping of tasks to entries
@@ -129,6 +143,7 @@ class PCCMLabel(object):
     return self.supporting_pts[1][-1]
     
   def get_num_supp_pts (self):
+    """Returns the number of supporting points."""
     return len(self.supporting_pts[0])
   
   def get_path (self):
