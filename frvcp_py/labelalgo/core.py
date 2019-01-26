@@ -1,3 +1,4 @@
+from typing import List, Any
 from enum import Enum
 class NodeType(Enum):
   DEPOT = 0,
@@ -5,7 +6,7 @@ class NodeType(Enum):
   CHARGING_STATION = 2
 
 class Node(object):
-  def __init__(self, node_id, name, type):
+  def __init__(self, node_id: int, name: str, type: NodeType):
     """Defines a node for the graph underlying an FRVCP."""
     self.node_id = node_id
     self.name = name
@@ -19,7 +20,7 @@ class HeapE(object):
   Since the data type used for heap nodes in the labeling
   algorithm is just int, this object is largely unnecessary.
   We keep it here to maintain consistency"""
-  def __init__(self, data):
+  def __init__(self, data: Any):
     self.data = data
 
 from queue import PriorityQueue
@@ -32,32 +33,32 @@ class PseudoFibonacciHeap(PriorityQueue):
   heap, so it lacks the nice theoretical advantages.
   """
   def __init__(self):
-    self.pq = []                         # list of entries arranged in a heap
-    self.entry_finder = {}               # mapping of tasks to entries
-    self.REMOVED = '<removed-task>'      # placeholder for a removed task
+    self._pq = []                         # list of entries arranged in a heap
+    self._entry_finder = {}               # mapping of tasks to entries
+    self._REMOVED = '<removed-task>'      # placeholder for a removed task
     import itertools
-    self.counter = itertools.count()     # unique sequence count
+    self._counter = itertools.count()     # unique sequence count
 
-  def add_task(self, task, priority=0):
+  def add_task(self, task: Any, priority: float=0):
       'Add a new task or update the priority of an existing task'
-      if task in self.entry_finder:
+      if task in self._entry_finder:
           self.remove_task(task)
-      count = next(self.counter)
+      count = next(self._counter)
       entry = [priority, count, task]
-      self.entry_finder[task] = entry
-      heapq.heappush(self.pq, entry)
+      self._entry_finder[task] = entry
+      heapq.heappush(self._pq, entry)
 
-  def remove_task(self, task):
+  def remove_task(self, task: Any):
       'Mark an existing task as REMOVED.  Raise KeyError if not found.'
-      entry = self.entry_finder.pop(task)
-      entry[-1] = self.REMOVED
+      entry = self._entry_finder.pop(task)
+      entry[-1] = self._REMOVED
 
-  def pop_task(self):
+  def pop_task(self) -> Any:
       'Remove and return the lowest priority task. Raise KeyError if empty.'
-      while self.pq:
-          priority, count, task = heapq.heappop(self.pq)
-          if task is not self.REMOVED:
-              del self.entry_finder[task]
+      while self._pq:
+          priority, count, task = heapq.heappop(self._pq)
+          if task is not self._REMOVED:
+              del self._entry_finder[task]
               return task
       raise KeyError('pop from an empty priority queue')
 
@@ -66,9 +67,10 @@ class PCCMLabel(object):
   Froger (2018) for the fixed-route vehicle charging problem.
   """
 
-  def __init__ (self, node_id_for_label, key_time, trip_time, 
-    last_visited_cs, soc_arr_to_last_cs, energy_consumed_since_last_cs, 
-    supporting_pts, slope, time_last_arc, energy_last_arc, parent, y_intercept=None
+  def __init__ (self, node_id_for_label: int, key_time: float, trip_time: float, 
+    last_visited_cs: int, soc_arr_to_last_cs: float, energy_consumed_since_last_cs: float, 
+    supporting_pts:List[List[float]], slope: List[float], time_last_arc: float,
+    energy_last_arc: float, parent: PCCMLabel, y_intercept: List[float]=None
   ):
     self.node_id_for_label = node_id_for_label
     self.key_time = key_time
@@ -83,14 +85,14 @@ class PCCMLabel(object):
     self.parent = parent
     self.y_intercept = self._compute_y_intercept() if y_intercept is None else y_intercept
 
-  def _compute_y_intercept(self):
+  def _compute_y_intercept(self) -> List[float]:
     if self.slope is None:
       return None
     else:
       return [(self.supporting_pts[1][b]-self.slope[b]*self.supporting_pts[0][b])
         for b in range(len(self.slope))]
 
-  def dominates(self,other):
+  def dominates(self, other: PCCMLabel) -> bool:
     # drive time dominance
     if self.trip_time > other.trip_time:
       return False
@@ -117,7 +119,7 @@ class PCCMLabel(object):
 
     return True
 
-  def get_soc_dichotomic(self, time):
+  def get_soc_dichotomic(self, time: float) -> float:
     if time < self.trip_time:
       return -float('inf')
 		
@@ -136,17 +138,17 @@ class PCCMLabel(object):
     
     return self.slope[low] * time + self.y_intercept[low]
 
-  def get_first_supp_pt_soc (self):
+  def get_first_supp_pt_soc(self) -> float:
     return self.supporting_pts[1][0]
   
-  def get_last_supp_pt_soc (self):
+  def get_last_supp_pt_soc(self) -> float:
     return self.supporting_pts[1][-1]
     
-  def get_num_supp_pts (self):
+  def get_num_supp_pts(self) -> int:
     """Returns the number of supporting points."""
     return len(self.supporting_pts[0])
   
-  def get_path (self):
+  def get_path(self) -> List[int]:
     path = []
     curr_parent = self
     stop = False
@@ -157,7 +159,7 @@ class PCCMLabel(object):
         stop = True
     return path
   
-  def get_path_from_last_customer (self):
+  def get_path_from_last_customer (self) -> List[int]:
     """Provides a list of the node IDs that the vehicle has 
     visited since the last time it either a) visited a customer,
     b) visited a depot, or c) visited the node at which it
@@ -183,7 +185,7 @@ class PCCMLabel(object):
     
     return path
   
-  def get_charging_amounts(self):
+  def get_charging_amounts(self) -> List[float]:
 
     if self.last_visited_cs is None:
       return [] # no visits to CS
@@ -235,7 +237,7 @@ class PCCMLabel(object):
     return s
 
   # region comparable methods
-  def compare_to (self,other):
+  def compare_to(self, other: PCCMLabel) -> int:
     if self.key_time < other.key_time:
       return -1
     elif self.key_time > other.key_time:
@@ -250,31 +252,118 @@ class PCCMLabel(object):
       else:
         return 0
   
-  def __eq__(self, other):
+  def __eq__(self, other: PCCMLabel) -> bool:
     return self.compare_to(other) == 0
 
-  def __ne__(self, other):
+  def __ne__(self, other: PCCMLabel) -> bool:
     return self.compare_to(other) != 0
 
-  def __lt__(self, other):
+  def __lt__(self, other: PCCMLabel) -> bool:
     return self.compare_to(other) < 0
 
-  def __le__(self, other):
+  def __le__(self, other: PCCMLabel) -> bool:
     return self.compare_to(other) <= 0
 
-  def __gt__(self, other):
+  def __gt__(self, other: PCCMLabel) -> bool:
     return self.compare_to(other) > 0
 
-  def __ge__(self, other):
+  def __ge__(self, other: PCCMLabel) -> bool:
     return self.compare_to(other) >= 0
 
   # endregion
 
 class FRVCPInstance(object):
   #TODO
-  def __init__(self, energy_matrix, time_matrix, process_times):
-    self.energy_matrix = energy_matrix
+  def __init__(self, energy_matrix: List[List[float]], 
+    time_matrix: List[List[float]], process_times: List[float],
+    max_q: float
+  ):
+    self.energy_matrix = energy_matrix # [i][j] are indices in g, not gprime
     self.time_matrix = time_matrix
     self.process_times = process_times
+    self.max_q = max_q
     # more TODO
+    return
+
+  def is_cs_faster(self, node1: Node, node2: Node) -> bool:
+    # TODO
+    # here's the java implementation:
+    # private boolean isCSFaster(int csType1, int csType2) {
+    #   return mSlope[csType1][0] > mSlope[csType2][0];
+    # }
+
+    # public boolean isCSFaster(Node cs1, Node cs2) {
+    #   if (!cs1.getType().equals(NodeType.CHARGING_STATION) || !cs2.getType().equals(NodeType.CHARGING_STATION)) {
+    #     throw new IllegalArgumentException("Method can only be used with a charging station");
+    #   }
+    #   int csType1 = mCSTypes[this.getLocalCSID(cs1)];
+    #   int csType2 = mCSTypes[this.getLocalCSID(cs2)];
+    #   return isCSFaster(csType1, csType2);
+    # }
+    return
+  
+  def get_supporting_points(self, node: Node) -> List[List[float]]:
+    # TODO note that we are accessing it by node
+    return
+
+  def get_slope(self, node: Node=None, soc: float=None):
+    # TODO again, note that we are accessing it by node
+    
+    # if no node passed:
+    #  if soc passed, throw a warning message that if passing SOC, Node must also be passed. no node passed, so ignoring soc
+    #  just return the array of slopes for CSs' charging functions
+    
+    # if node passed, but no soc:
+    #  return the slopes of the node's charging function
+
+    # the code from the java implementation:
+    # public double getSlope(Node node, double soc) {
+    #   int segment = getSegment(node, soc);
+    #   int localCSID = mMapNodeCStoLocalID.get(node);
+    #   int typeCS = mCSTypes[localCSID];
+    #   return mSlope[typeCS][segment];
+
+    # }
+
+    # public int getSegment(Node node, double soc) {
+    #   if (!node.getType().equals(NodeType.CHARGING_STATION)) {
+    #     throw new IllegalArgumentException("Method can only be used with a charging station");
+    #   }
+    #   int localCSID = mMapNodeCStoLocalID.get(node);
+    #   int typeCS = mCSTypes[localCSID];
+    #   int nbPoints = mNbBreakPoints[typeCS];
+    #   int k = 0;
+    #   while (k < nbPoints && mPiecewisePoints[typeCS][k][1] <= soc) {
+    #     k++;
+    #   }
+    #   if (k == 0) {
+    #     throw new IllegalStateException(mPiecewisePoints[typeCS][k][1] + " vs " + soc);
+    #   }
+    #   return k - 1;
+
+    # }
+    return
+
+  def get_time(self, node: Node=None, soc: float=None):
+    # TODO again, note that we are accessing it by node
+    
+    # if no node passed:
+    #  if soc passed, throw a warning message that if passing SOC, Node must also be passed. no node passed, so ignoring soc
+    #  just return the array of slopes for CSs' charging functions
+    
+    # if node passed, but no soc:
+    #  return the slopes of the node's charging function
+
+    # the code from the java implementation:
+    # private double getTime(int typeCS, double energy, int nbDecimals) {
+    #   int b = 0;
+    #   while (b < (mNbBreakPoints[typeCS] - 1) && mPiecewisePoints[typeCS][b + 1][1] < energy) {
+    #     b++;
+    #   }
+    #   if (b == (mNbBreakPoints[typeCS] - 1)) {
+    #     throw new IllegalStateException("Unknown breakpoint -> " + energy + " vs "
+    #         + mPiecewisePoints[typeCS][mNbBreakPoints[typeCS] - 1][1]);
+    #   }
+    #   return (energy - mYIntercept[typeCS][b]) / mSlope[typeCS][b];
+    # }
     return
