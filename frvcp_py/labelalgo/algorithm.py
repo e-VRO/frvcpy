@@ -1,14 +1,17 @@
+from typing import List
 from frvcp_py.labelalgo.core import *
 class PCCMAlgorithm(object):
   """The Froger, et al. (2018) labeling algorithm to solve the FRVCP."""
 
-  def __init__(self, instance, init_soc, nodes, adjacency_list,
-    node_local_id_dep, node_local_id_arr, max_slope
+  def __init__(self, instance: FRVCPInstance, init_soc: float, 
+    nodes_gpr: List[Node], 
+    adjacency_list: List[List[int]],
+    node_local_id_dep: int, node_local_id_arr: int, max_slope: float
   ):
     self.instance = instance # the instance
     self.init_soc = init_soc # initial charge
-    self.nodes = nodes # array containing nodes of graph (indices are local IDs)
-    self.n_nodes = len(nodes) # number of nodes
+    self.nodes_gpr = nodes_gpr # array containing nodes of graph g prime (indices are local IDs)
+    self.n_nodes = len(nodes_gpr) # number of nodes
     self.adjacency_list = adjacency_list # adjacency lists (containing node IDs) defining arcs of the graph
     self.node_local_id_dep = node_local_id_dep # ID of the departure (origin) node
     self.node_local_id_arr = node_local_id_arr # ID of the arrival (destination) node
@@ -30,23 +33,23 @@ class PCCMAlgorithm(object):
   def run_multiobj_shortest_path_algo(self, dominance, stop_at_first):
     
     # is there an unset label associated with each node (using ID) in the updatable priority queue
-    self.in_heap = [False for _ in self.nodes]
+    self.in_heap = [False for _ in self.nodes_gpr]
     
     # key associated with each node (using local ID) (array of doubles)
-    self.key = [None for _ in self.nodes]
+    self.key = [None for _ in self.nodes_gpr]
 
     from queue import PriorityQueue
     # priority queues of unset labels for each node
     # ("for CS only labels at departure" -- meaning it represents keytime when departing the CS?)
-    self.unset_labels = [PriorityQueue() for _ in self.nodes]
+    self.unset_labels = [PriorityQueue() for _ in self.nodes_gpr]
     
     # list of set (nondominated) labels for each node
     # ("for CS only labels at departure" -- meaning it represents keytime when departing the CS?)
-    self.set_labels = [[] for _ in self.nodes]
+    self.set_labels = [[] for _ in self.nodes_gpr]
     
     # for each node (by local id), the node in the updatable queue associated with the label currently in the heap
     # TODO BY LOCAL ID??
-    self.heap_elements = [None for _ in self.nodes]
+    self.heap_elements = [None for _ in self.nodes_gpr]
     
     # stores best unset labels for each node (tasks are integers or labels?)
     self.heap = PseudoFibonacciHeap()
@@ -63,7 +66,7 @@ class PCCMAlgorithm(object):
       # heap element containing the local ID of the node whose key time is smallest
       min_node_f = self.heap.pop_task()
       min_node_local_id = min_node_f.data
-      min_node_id = self.nodes[min_node_local_id].node_id # node id of the aforementioned node
+      min_node_id = self.nodes_gpr[min_node_local_id].node_id # node id of the aforementioned node
       self.in_heap[min_node_local_id] = False
       self.heap_elements[min_node_local_id] = None
       self.key[min_node_local_id] = None
@@ -73,11 +76,290 @@ class PCCMAlgorithm(object):
 
       # compute supporting points of label
       label_to_set = self._compute_supporting_points(label_to_set)
-      # TODO HERE line 182 in notepad++
-      ...
+      # check if label dominated by previously set label
+      if dominance and self._is_dominated(label_to_set, min_node_local_id):
+        self._insert_new_node_in_heap(min_node_local_id)
+        continue
+      
+      # Currently selected label is not dominated
 
+      # if label is a CS, we build the list of labels according to the supp pts
+      # of the SOC function
+      if (self.nodes_gpr[min_node_local_id].type == NodeType.CHARGING_STATION and
+        label_to_set.last_visited_cs != min_node_local_id
+      ):
+        new_labels = self._build_label_list(label_to_set)
+        for new_label in new_labels:
+          self.unset_labels[min_node_local_id].put(new_label)
+        self._insert_new_node_in_heap(min_node_local_id)
+        continue
+
+      # if current node is the destination node
+      if min_node_local_id == self.node_local_id_arr:
+        self.set_labels[min_node_local_id].put(label_to_set)
+        if stop_at_first:
+          # we're done
+          break
+        else:
+          self._insert_new_node_in_heap(min_node_local_id)
+          # don't extend label if desintation reached
+          continue
+      
+      # mark current label as set
+      self.set_labels.append(label_to_set)
+
+      # extend current label
+      n_adj_nodes = len(self.adjacency_list[min_node_local_id])
+      for k in range(n_adj_nodes):
+        next_node_local_id = self.adjacency_list[min_node_local_id][k]
+        next_node_id = self.nodes_gpr[next_node_local_id].node_id
+        # skip the node if the label cannot be extended
+        if not self._can_be_extended_to(label_to_set, next_node_local_id):
+          continue
+        
+        # build the new label
+        new_label = self._relax_arc(label_to_set, next_node_local_id, self.instance.energy_matrix[min_node_id][next_node_id],
+          self.instance.process_times[next_node_id] + self.instance.time_matrix[min_node_id][next_node_id])
+        
+        # if new label exists, modify key associated with node
+        if new_label is not None:
+          self.unset_labels[next_node_local_id].put(new_label)
+          if (self.in_heap[next_node_local_id] and 
+            new_label.key_time < self.key[next_node_local_id]
+          ):
+            self.heap.add_task(self.heap_elements[next_node_local_id],new_label.key_time)
+          else:
+            self.heap_elements[next_node_local_id] = HeapE(next_node_local_id)
+            self.heap.add_task(self.heap_elements[next_node_local_id],new_label.key_time)
+            self.in_heap[next_node_local_id] = True
+            self.key[next_node_local_id] = new_label.key_time
+      
+      # add min node to the heap
+      self._insert_new_node_in_heap(min_node_local_id)
     return
 
+  def _can_be_extended_to(self, curr_label: PCCMLabel, next_node_local_id: int) -> bool:
+    next_node = self.nodes_gpr[next_node_local_id]
+    
+    # Check is for charging stations only
+    if (next_node.type == NodeType.CHARGING_STATION):
+      # while scanning nodes of the route backward, we need to encounter
+      # the depot, a customer, or a faster charging station before
+      # scanning the same charging station
+      parents = curr_label.get_path_from_last_customer()
+      parent_node = None
+      cs_nodes = []
+      check = stop = False
+      for i in range(len(parents)-1, -1, -1):
+        parent_node = self.nodes_gpr[parents[i]]
+        if parent_node == next_node:
+          check = True
+          # has not visited a faster CS after first visit
+          stop = True
+          break
+        if parent_node.type == NodeType.CHARGING_STATION:
+          cs_nodes.append(parent_node)
+        else: # customer or depot
+          stop = True
+        
+        if stop:
+          break
+      
+      if check:
+        for cs_parent_node in cs_nodes:
+          if self.instance.is_cs_faster(cs_parent_node, next_node):
+            # we have visited a faster CS after the first visit to the CS
+            return True
+        return False
+      else:
+        return True
+
+    return True
+  
+  def _relax_arc(self, curr_label: PCCMLabel, next_node_local_id: int,
+      energy_arc: float, time_arc: float
+  ) -> PCCMLabel:
+    """Returns the label built by the extension of curr_label to the 
+    node given by next_node_local_id."""
+    max_q = self.instance.max_q
+    
+    # going to modify the following
+    new_e_consumed_since_last_cs = None
+    new_soc_at_last_cs = None
+    new_last_visited = None
+
+    
+    # modifications if curr_label is a charging station
+    if self.nodes_gpr[curr_label.node_id_for_label].type == NodeType.CHARGING_STATION:
+      new_e_consumed_since_last_cs = energy_arc
+      new_last_visited = curr_label.node_id_for_label
+      new_soc_at_last_cs = curr_label.get_first_supp_pt_soc()
+    # modifications if cust or depot
+    else:
+      new_e_consumed_since_last_cs = curr_label.energy_consumed_since_last_cs + energy_arc
+      new_last_visited = curr_label.last_visited_cs
+      new_soc_at_last_cs = curr_label.soc_arr_to_last_cs
+    
+    # compute max soc reachable at next node
+    max_soc_at_next = curr_label.get_last_supp_pt_soc() - energy_arc
+    # if it's not enough, then we don't extend
+    if max_soc_at_next < self.min_energy_at_departure[next_node_local_id]:
+      return None
+
+    # compute min soc reachable or needed at next node
+    min_soc_at_next = max(self.min_energy_at_departure[next_node_local_id], 
+      new_soc_at_last_cs - new_e_consumed_since_last_cs)
+    
+    # determine if we need to charge at the last visited CS to reach
+    # next node with sufficient SOC
+    e_to_charge_at_last_cs = max(0,
+      self.min_energy_at_departure[next_node_local_id] + new_e_consumed_since_last_cs - new_soc_at_last_cs)
+    trip_time = curr_label.trip_time + time_arc
+    min_time = trip_time
+
+    # if we need to charge some energy at last visited CS
+    if e_to_charge_at_last_cs > 0:
+      # if there is no prev CS, we can't charge, so it's impossible to extend
+      if new_last_visited is None:
+        return None
+      else:
+        # if it requires more charge than can be acquired, it's impossible to extend
+        if new_soc_at_last_cs + e_to_charge_at_last_cs > max_q:
+          return None
+        # compute time needed to retroactively charge
+        cs_node = self.nodes_gpr[new_last_visited]
+        charging_time = self.instance.get_charging_time(cs_node, 
+          new_soc_at_last_cs, e_to_charge_at_last_cs)
+        min_time += charging_time
+    
+    # if min time of departure is larger than allowed, it's impossible to extend
+    if min_time > self.latest_departure_time[next_node_local_id]:
+      return None
+
+    # compute key time
+    key_time = None
+    # if we don't need to charge after the next node
+    if min_soc_at_next > self.min_energy_consumed_after_node[next_node_local_id]:
+      key_time = min_time + self.min_travel_time_after_node[next_node_local_id]
+    # if we will need to charge
+    else:
+      key_time = (min_time + self.min_travel_charge_time_after_node[next_node_local_id] - 
+        min_soc_at_next/self.max_slope)
+    
+    # return a new label for the relaxation to the new node
+    return PCCMLabel(next_node_local_id, key_time, trip_time, new_last_visited,
+      new_soc_at_last_cs, new_e_consumed_since_last_cs, curr_label.supporting_pts,
+      curr_label.slope, time_arc, energy_arc, curr_label, y_intercept=curr_label.y_intercept)
+  
+  def _build_label_list(self, curr_label: PCCMLabel) -> List[PCCMLabel]:
+    """Builds list of labels to extend from the curr_label. Specifically,
+    creates one new label for each supporting point of the current SOC 
+    function in order to explore the possibility of switching over to the
+    new CS at that point.
+    """
+    label_list = []
+    curr_local_id = curr_label.node_id_for_label
+    curr_node = self.nodes_gpr[curr_local_id]
+
+    # we only split into new labels at charging stations
+    if curr_node.type == NodeType.CHARGING_STATION:
+      
+      # charging function details
+      cs_supp_pts = self.instance.get_supporting_points(curr_node)
+      cs_slope = self.instance.get_slope(curr_node)
+      cs_n_pts = len(cs_supp_pts[0])
+
+      # current SOC function
+      lbl_supp_pts = curr_label.supporting_pts
+      lbl_n_pts = curr_label.get_num_supp_pts()
+
+      # iterate over points in the label's SOC function
+      for k in range(lbl_n_pts):
+        trip_time = lbl_supp_pts[0][k]
+        soc_at_cs = lbl_supp_pts[1][k]
+
+        # don't switch if it leads to a time-infeasible path
+        if trip_time > self.latest_departure_time[curr_local_id]:
+          continue
+
+        # don't switch if energy is sufficient to finish the route
+        if soc_at_cs > self.max_energy_at_departure:
+          continue
+
+        # switch only if the new slope is better than the current
+        if k < lbl_n_pts - 1:
+          curr_slope = curr_label.slope[k]
+          new_slope = self.instance.get_slope(node=curr_node,soc=max(0,soc_at_cs))
+          if curr_slope >= new_slope:
+            continue
+
+        # don't switch if soc when departing from last CS was sufficient to finish route
+        if (curr_label.last_visited_cs is not None and
+          soc_at_cs + curr_label.energy_consumed_since_last_cs > 
+            self.max_energy_at_departure
+        ):
+          continue
+
+        # passed all checks. Will switch to new CS
+        # Compute first break pt of charging function above current pt
+        first_k = 0
+        soc_floor = max(0,soc_at_cs)
+        while first_k < cs_n_pts and cs_supp_pts[1][first_k] <= soc_floor:
+          first_k += 1
+
+        e_to_end = self.min_energy_consumed_after_node[curr_local_id]
+        n_pts_new = cs_n_pts - first_k + 1
+        supp_pts_new = [[None for k in range(n_pts_new)] for _ in range(2)]
+        slope_new = None
+        supp_pts_new[0][0] = trip_time
+        supp_pts_new[1][0] = soc_at_cs
+
+        # compute time to charge 
+        shift_time = self.instance.get_time(curr_node, soc_at_cs)
+        for l in range(first_k,cs_n_pts):
+          supp_pts_new[0][l-first_k+1] = trip_time+cs_supp_pts[0][l]-shift_time
+          supp_pts_new[1][l-first_k+1] = cs_supp_pts[1][l]
+
+        # if there is more than one supp pt, compute slopes of segments
+        if n_pts_new > 1:
+          slope_new = [None for _ in range(n_pts_new-1)]
+          for l in range(first_k,cs_n_pts):
+            slope_new[l-first_k] = cs_slope[l-1]
+        
+        # compute key
+        if soc_at_cs > e_to_end:
+          key_time = trip_time + self.min_travel_time_after_node[curr_local_id]
+        else:
+          key_time = trip_time + self.min_travel_charge_time_after_node[curr_local_id] - soc_at_cs/self.max_slope
+        
+        # make new label
+        label_list.append(PCCMLabel(curr_local_id, key_time, trip_time, curr_local_id,
+          curr_label.soc_arr_to_last_cs, curr_label.energy_consumed_since_last_cs,
+          supp_pts_new, slope_new, 0, 0, curr_label.parent)
+        )
+
+    # not a CS. just return the current label
+    else:
+      label_list.append(curr_label)
+
+    return label_list
+  
+  def _insert_new_node_in_heap (self, local_node_id: int):
+    # if current node has unset label,insert this node in the heap with a new key
+    if not self.unset_labels[local_node_id]: # true if empty
+      new_key = self.unset_labels[local_node_id].queue[0].key_time
+      self.heap_elements[local_node_id] = HeapE(local_node_id)
+      self.heap.add_task(self.heap_elements[local_node_id], new_key)
+      self.in_heap[local_node_id] = True
+      self.key[local_node_id] = new_key
+    return
+  
+  def _is_dominated(self, label: PCCMLabel, min_node_local_id: int) -> bool:
+    for other in self.set_labels[min_node_local_id]:
+      if other.dominates(label):
+        return True
+    return False
+  
   def _compute_supporting_points(self, label: PCCMLabel) -> PCCMLabel:
     """Provides a new label that is identical to the argument, but with
     the supporting points, slopes, and y-intercepts updated.
@@ -181,8 +463,8 @@ class PCCMAlgorithm(object):
   def _build_first_label(self) -> PCCMLabel:
     """Constructs the initial label to kick off the labeling algorithm."""
     supp_pts = [[0],[self.init_soc]]
-    energyToEnd = self.min_energy_consumed_after_node[self.node_local_id_dep]
-    if self.init_soc >= energyToEnd:
+    energy_to_end = self.min_energy_consumed_after_node[self.node_local_id_dep]
+    if self.init_soc >= energy_to_end:
       key_time = self.min_travel_time_after_node[self.node_local_id_dep]
     else:
       key_time = self.min_travel_charge_time_after_node[self.node_local_id_dep]
