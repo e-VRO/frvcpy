@@ -6,7 +6,13 @@ class PCCMAlgorithm(object):
   def __init__(self, instance: FRVCPInstance, init_soc: float, 
     nodes_gpr: List[Node], 
     adjacency_list: List[List[int]],
-    node_local_id_dep: int, node_local_id_arr: int, max_slope: float
+    node_local_id_dep: int, node_local_id_arr: int, max_slope: float,
+    min_energy_consumed_after_node: List[float],
+    min_travel_time_after_node: List[float],
+    min_travel_charge_time_after_node: List[float],
+    max_energy_at_departure: List[float],
+    latest_departure_time: List[float],
+    min_energy_at_departure: List[float]
   ):
     self.instance = instance # the instance
     self.init_soc = init_soc # initial charge
@@ -16,18 +22,18 @@ class PCCMAlgorithm(object):
     self.node_local_id_dep = node_local_id_dep # ID of the departure (origin) node
     self.node_local_id_arr = node_local_id_arr # ID of the arrival (destination) node
     self.max_slope = max_slope # max slope in any CS's charging function
-    self.min_energy_consumed_after_node = [] # minimum energy consumed after departing each node
-    self.min_travel_time_after_node = [] # minimum travel time after departing a node
+    self.min_energy_consumed_after_node = min_energy_consumed_after_node # minimum energy consumed after departing each node
+    self.min_travel_time_after_node = min_travel_time_after_node # minimum travel time after departing a node
     # minimum travel time after departing a node plus 
     # the minimum time required to charge to the energy level needed to reach the destination node after this node
-    self.min_travel_charge_time_after_node = []
+    self.min_travel_charge_time_after_node = min_travel_charge_time_after_node
     # upper bound on SOC of EV upon departing each node (using local ID)
     # (according to future course of the route)
-    self.max_energy_at_departure = []
+    self.max_energy_at_departure = max_energy_at_departure
     # upper bound on the time at which the vehicle can depart a node (using local ID)
-    self.latest_departure_time = []
+    self.latest_departure_time = latest_departure_time
     # lower bound on the SOC the EV can have as it departs each node (using local ID)
-    self.min_energy_at_departure = []
+    self.min_energy_at_departure = min_energy_at_departure
 
 
   def run_multiobj_shortest_path_algo(self, dominance, stop_at_first):
@@ -470,3 +476,30 @@ class PCCMAlgorithm(object):
       key_time = self.min_travel_charge_time_after_node[self.node_local_id_dep]
     return PCCMLabel(self.node_local_id_dep, key_time, 0, None, self.init_soc, 
       0, supp_pts, None, 0, 0, None)
+
+  def get_optimized_route(self) -> List[Any]:
+    if not self.set_labels[self.node_local_id_arr]:
+      return None
+    else:
+      route = []
+      label = self.set_labels[self.node_local_id_arr][0]
+      path = label.get_path()
+      charge_amts = label.get_charging_amounts()
+      nodes_path = [self.nodes_gpr[k] for k in path]
+      charging_index = 0
+      for node in nodes_path:
+        if node.type == NodeType.CHARGING_STATION:
+          route.append((node.node_id, 0.0, charge_amts[charging_index]))
+          charging_index += 1
+        else:
+          route.append(node.node_id, None, None)
+      return route
+
+  def get_objective_value(self) -> float:
+    if self.set_labels[self.node_local_id_arr]:
+      return self.set_labels[self.node_local_id_arr][0].key_time
+    else:
+      return float('inf')
+
+  def solution_found(self) -> bool:
+    return len(self.set_labels[self.node_local_id_arr]) > 0
