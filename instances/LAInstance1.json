@@ -1,0 +1,19 @@
+{
+  "init_soc": 500,
+  "max_q": 500,
+  "process_times": [0,50,100,150,0],
+  "energy_matrix": [
+    ["Infinity",1,1,1,0],
+    ["Infinity",5,5,5,6],
+    ["Infinity",10,10,10,11],
+    ["Infinity",15,15,15,11],
+    ["Infinity",1,1,1,0]
+  ],
+  "time_matrix": [
+    ["Infinity",10,10,10,0],
+    ["Infinity",50,50,50,60],
+    ["Infinity",100,100,100,110],
+    ["Infinity",150,150,150,110],
+    ["Infinity",10,10,10,0]
+  ]
+}
