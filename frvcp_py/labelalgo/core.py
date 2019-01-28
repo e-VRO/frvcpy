@@ -272,19 +272,29 @@ class PCCMLabel(object):
 
   # endregion
 
+import json
 class FRVCPInstance(object):
-  #TODO
-  def __init__(self, energy_matrix: List[List[float]], 
-    time_matrix: List[List[float]], process_times: List[float],
-    max_q: float
-  ):
-    self.energy_matrix = energy_matrix # [i][j] are indices in g, not gprime
-    self.time_matrix = time_matrix
-    self.process_times = process_times
-    self.max_q = max_q
+  def __init__(self, instance_filename: str):
+    with open(instance_filename) as f:
+      instance_json = json.load(f)
+      self._store_instance_parameters(instance_json)
+    return
+  
+  def _store_instance_parameters(self, instance):
+    self.energy_matrix = instance["energy_matrix"] # [i][j] are indices in g, not gprime
+    self.time_matrix = instance["time_matrix"]
+    self.process_times = instance["process_times"]
+    self.max_q = instance["max_q"]
+    self.init_soc = instance["init_soc"]
+    # TODO prior to below line, read in charging station info
+    self.max_slope = self._compute_max_slope()
     # more TODO
     return
 
+  def _compute_max_slope(self):
+    # TODO
+    return 'todo'
+  
   def is_cs_faster(self, node1: Node, node2: Node) -> bool:
     # TODO
     # here's the java implementation:
