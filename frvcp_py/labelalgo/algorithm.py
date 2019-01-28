@@ -1,9 +1,11 @@
-from typing import List
-from frvcp_py.labelalgo.core import *
+from typing import List,Any
+from frvcp_py.labelalgo.core import Node,NodeType,FRVCPInstance,PseudoFibonacciHeap,PriorityQueue,HeapE,PCCMLabel
 class PCCMAlgorithm(object):
   """The Froger, et al. (2018) labeling algorithm to solve the FRVCP."""
 
-  def __init__(self, instance: FRVCPInstance, init_soc: float, 
+  def __init__(self,
+    instance: FRVCPInstance,
+    init_soc: float, 
     nodes_gpr: List[Node], 
     adjacency_list: List[List[int]],
     node_local_id_dep: int, node_local_id_arr: int, max_slope: float,
@@ -34,7 +36,6 @@ class PCCMAlgorithm(object):
     self.latest_departure_time = latest_departure_time
     # lower bound on the SOC the EV can have as it departs each node (using local ID)
     self.min_energy_at_departure = min_energy_at_departure
-
 
   def run_multiobj_shortest_path_algo(self, dominance, stop_at_first):
     
