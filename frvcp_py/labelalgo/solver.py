@@ -72,8 +72,7 @@ class Solver(object):
       sum([self.instance.process_times[stop] for stop in self.route])
 
   def _compute_min_soc_at_departure(self) -> List[float]:
-    # TODO
-    return 'todo'
+    return [self.instance.get_min_energy_to_cs(node_id) for node_id in self.route]
 
   def _compute_max_soc_at_arrival(self) -> List[float]:
     # TODO
