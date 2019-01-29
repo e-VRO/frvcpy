@@ -66,8 +66,10 @@ class Solver(object):
     return (label_algo.get_objective_value(),label_algo.get_optimized_route())
 
   def _compute_max_avail_time_detour_charge(self) -> float:
-    # TODO
-    return 'todo'
+    return self.instance.t_max - \
+      sum([self.instance.time_matrix[self.route[i]][self.route[i+1]]
+        for i in range(len(self.route)-1)]) - \
+      sum([self.instance.process_times[stop] for stop in self.route])
 
   def _compute_min_soc_at_departure(self) -> List[float]:
     # TODO
