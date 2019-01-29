@@ -308,6 +308,11 @@ class FRVCPInstance(object):
     # list of nodes for the vertices in G
     self.nodes_g = self._make_nodes()
 
+  def get_min_energy_to_cs(self, node_id: int) -> float:
+    # TODO in implementation for RP-AEV, in if condition, also check that that cs's slope is > 0 (since idle locs will also be classified as CSs)
+    return 0.0 if node_id in self.cs_id_to_type \
+      else min([self.energy_matrix[node_id][cs_id] for cs_id in self.cs_id_to_type])
+  
   def get_cs_nodes(self) -> List[Node]:
     return [node for node in self.nodes_g if node.type == NodeType.CHARGING_STATION]
   
