@@ -55,7 +55,6 @@ class PCCMAlgorithm(object):
     self.set_labels = [[] for _ in self.nodes_gpr]
     
     # for each node (by local id), the node in the updatable queue associated with the label currently in the heap
-    # TODO BY LOCAL ID??
     self.heap_elements = [None for _ in self.nodes_gpr]
     
     # stores best unset labels for each node (tasks are integers or labels?)
@@ -322,7 +321,7 @@ class PCCMAlgorithm(object):
         supp_pts_new[1][0] = soc_at_cs
 
         # compute time to charge 
-        shift_time = self.instance.get_time(curr_node, soc_at_cs)
+        shift_time = self.instance.get_time_to_charge_from_zero(curr_node, soc_at_cs)
         for l in range(first_k,cs_n_pts):
           supp_pts_new[0][l-first_k+1] = trip_time+cs_supp_pts[0][l]-shift_time
           supp_pts_new[1][l-first_k+1] = cs_supp_pts[1][l]
