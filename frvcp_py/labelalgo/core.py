@@ -70,7 +70,7 @@ class PCCMLabel(object):
   def __init__ (self, node_id_for_label: int, key_time: float, trip_time: float, 
     last_visited_cs: int, soc_arr_to_last_cs: float, energy_consumed_since_last_cs: float, 
     supporting_pts:List[List[float]], slope: List[float], time_last_arc: float,
-    energy_last_arc: float, parent: PCCMLabel, y_intercept: List[float]=None
+    energy_last_arc: float, parent, y_intercept: List[float]=None
   ):
     self.node_id_for_label = node_id_for_label
     self.key_time = key_time
@@ -92,7 +92,7 @@ class PCCMLabel(object):
       return [(self.supporting_pts[1][b]-self.slope[b]*self.supporting_pts[0][b])
         for b in range(len(self.slope))]
 
-  def dominates(self, other: PCCMLabel) -> bool:
+  def dominates(self, other) -> bool:
     # drive time dominance
     if self.trip_time > other.trip_time:
       return False
@@ -237,7 +237,7 @@ class PCCMLabel(object):
     return s
 
   # region comparable methods
-  def compare_to(self, other: PCCMLabel) -> int:
+  def compare_to(self, other) -> int:
     if self.key_time < other.key_time:
       return -1
     elif self.key_time > other.key_time:
@@ -252,22 +252,22 @@ class PCCMLabel(object):
       else:
         return 0
   
-  def __eq__(self, other: PCCMLabel) -> bool:
+  def __eq__(self, other) -> bool:
     return self.compare_to(other) == 0
 
-  def __ne__(self, other: PCCMLabel) -> bool:
+  def __ne__(self, other) -> bool:
     return self.compare_to(other) != 0
 
-  def __lt__(self, other: PCCMLabel) -> bool:
+  def __lt__(self, other) -> bool:
     return self.compare_to(other) < 0
 
-  def __le__(self, other: PCCMLabel) -> bool:
+  def __le__(self, other) -> bool:
     return self.compare_to(other) <= 0
 
-  def __gt__(self, other: PCCMLabel) -> bool:
+  def __gt__(self, other) -> bool:
     return self.compare_to(other) > 0
 
-  def __ge__(self, other: PCCMLabel) -> bool:
+  def __ge__(self, other) -> bool:
     return self.compare_to(other) >= 0
 
   # endregion
@@ -286,94 +286,81 @@ class FRVCPInstance(object):
     self.process_times = instance["process_times"]
     self.max_q = instance["max_q"]
     self.init_soc = instance["init_soc"]
-    # TODO prior to below line, read in charging station info
+    self.t_max = instance["t_max"]
+    # keys are cs types, values are dicts that map "time" or "charge" to corresponding arrays of floats
+    self.cs_bkpt_info = instance["breakpoints_by_type"]
+    self.cs_bkpt_info = {int(k):v for k,v in self.cs_bkpt_info.items()}
+    # array of objs with attrs 'node_id' and 'type'
+    self.cs_details = instance["css"]
+    # keys are cs types, values are 2d arrays of cs breakpoints, formatted
+    # similarly to how they are used in the labeling algorithm:
+    # [0][:] are time bkpts, [1][:] are charge bkpts
+    self.type_to_supp_pts = self._make_type_to_supp_pts()
+    # keys are cs types, values are arrays of slopes
+    self.type_to_slopes = self._make_type_to_slopes()
+    self.type_to_yints = self._make_type_to_yintercepts()
     self.max_slope = self._compute_max_slope()
-    # more TODO
-    return
+    # id is the CS's index in G
+    self.cs_id_to_type = self._make_cs_id_to_type_map()
 
+  def _make_type_to_supp_pts(self):
+    return {cs_type:[pts["time"],pts["charge"]] for cs_type,pts in self.cs_bkpt_info.items()}
+  
+  def _make_type_to_slopes(self):
+    return {
+      cs_type:[
+        ((arr[1][i+1] - arr[1][i]) / (arr[0][i+1] - arr[0][i]))
+        for i in range(len(arr[0])-1)]
+      for cs_type,arr in self.type_to_supp_pts.items()}
+  
+  def _make_type_to_yintercepts(self):
+    return {
+      cs_type:[ # b = y-mx
+        (self.type_to_supp_pts[cs_type][1][i] - 
+          self.type_to_slopes[cs_type][i] * self.type_to_supp_pts[cs_type][0][i])
+        for i in range(len(arr[0])-1)]
+      for cs_type,arr in self.type_to_supp_pts.items()}
+  
+  def _make_cs_id_to_type_map(self):
+    return {cs["node_id"]:cs["type"] for cs in self.cs_details}
+  
   def _compute_max_slope(self):
-    # TODO
-    return 'todo'
+    return max([slopes[0] for slopes in self.type_to_slopes.values()])
   
   def is_cs_faster(self, node1: Node, node2: Node) -> bool:
-    # TODO
-    # here's the java implementation:
-    # private boolean isCSFaster(int csType1, int csType2) {
-    #   return mSlope[csType1][0] > mSlope[csType2][0];
-    # }
-
-    # public boolean isCSFaster(Node cs1, Node cs2) {
-    #   if (!cs1.getType().equals(NodeType.CHARGING_STATION) || !cs2.getType().equals(NodeType.CHARGING_STATION)) {
-    #     throw new IllegalArgumentException("Method can only be used with a charging station");
-    #   }
-    #   int csType1 = mCSTypes[this.getLocalCSID(cs1)];
-    #   int csType2 = mCSTypes[this.getLocalCSID(cs2)];
-    #   return isCSFaster(csType1, csType2);
-    # }
-    return
+    return (self.type_to_slopes[self.cs_id_to_type[node1.node_id]][0] > 
+      self.type_to_slopes[self.cs_id_to_type[node2.node_id]][0])
   
   def get_supporting_points(self, node: Node) -> List[List[float]]:
-    # TODO note that we are accessing it by node
-    return
+    return self.type_to_supp_pts[self.cs_id_to_type[node.node_id]]
 
-  def get_slope(self, node: Node=None, soc: float=None):
-    # TODO again, note that we are accessing it by node
-    
-    # if no node passed:
-    #  if soc passed, throw a warning message that if passing SOC, Node must also be passed. no node passed, so ignoring soc
-    #  just return the array of slopes for CSs' charging functions
-    
-    # if node passed, but no soc:
-    #  return the slopes of the node's charging function
+  def _get_cf_segment_idx(self, cs_type, value, axis) -> int:
+    """Axis is 1 for charge and 0 for time."""
+    idx=0
+    while not (self.type_to_supp_pts[cs_type][axis][idx] <= value and 
+      value < self.type_to_supp_pts[cs_type][axis][idx+1]
+    ):
+      idx += 1
+    return idx
+  
+  def get_slope(self, node: Node, soc: float=None):
+    # if node passed but no soc, return slopes of node's charging function
+    if soc is None:
+      return self.type_to_slopes[self.cs_id_to_type[node.node_id]]
+    # otherwise, return the slope of the segment on which the soc lies
+    else:
+      return self.type_to_slopes[self.cs_id_to_type[node.node_id]][
+        self._get_cf_segment_idx(self.cs_id_to_type[node.node_id],soc,1)]
 
-    # the code from the java implementation:
-    # public double getSlope(Node node, double soc) {
-    #   int segment = getSegment(node, soc);
-    #   int localCSID = mMapNodeCStoLocalID.get(node);
-    #   int typeCS = mCSTypes[localCSID];
-    #   return mSlope[typeCS][segment];
-
-    # }
-
-    # public int getSegment(Node node, double soc) {
-    #   if (!node.getType().equals(NodeType.CHARGING_STATION)) {
-    #     throw new IllegalArgumentException("Method can only be used with a charging station");
-    #   }
-    #   int localCSID = mMapNodeCStoLocalID.get(node);
-    #   int typeCS = mCSTypes[localCSID];
-    #   int nbPoints = mNbBreakPoints[typeCS];
-    #   int k = 0;
-    #   while (k < nbPoints && mPiecewisePoints[typeCS][k][1] <= soc) {
-    #     k++;
-    #   }
-    #   if (k == 0) {
-    #     throw new IllegalStateException(mPiecewisePoints[typeCS][k][1] + " vs " + soc);
-    #   }
-    #   return k - 1;
-
-    # }
-    return
-
-  def get_time(self, node: Node=None, soc: float=None):
-    # TODO again, note that we are accessing it by node
-    
-    # if no node passed:
-    #  if soc passed, throw a warning message that if passing SOC, Node must also be passed. no node passed, so ignoring soc
-    #  just return the array of slopes for CSs' charging functions
-    
-    # if node passed, but no soc:
-    #  return the slopes of the node's charging function
-
-    # the code from the java implementation:
-    # private double getTime(int typeCS, double energy, int nbDecimals) {
-    #   int b = 0;
-    #   while (b < (mNbBreakPoints[typeCS] - 1) && mPiecewisePoints[typeCS][b + 1][1] < energy) {
-    #     b++;
-    #   }
-    #   if (b == (mNbBreakPoints[typeCS] - 1)) {
-    #     throw new IllegalStateException("Unknown breakpoint -> " + energy + " vs "
-    #         + mPiecewisePoints[typeCS][mNbBreakPoints[typeCS] - 1][1]);
-    #   }
-    #   return (energy - mYIntercept[typeCS][b]) / mSlope[typeCS][b];
-    # }
-    return
+  def get_charging_time(self,
+    node: Node,
+    starting_energy: float,
+    acquired_energy: float
+  ):
+    return self.get_time_to_charge_from_zero(node,starting_energy+acquired_energy) - \
+      self.get_time_to_charge_from_zero(node,starting_energy)
+  
+  def get_time_to_charge_from_zero(self, node: Node, soc: float):
+    seg_idx = self._get_cf_segment_idx(self.cs_id_to_type[node.node_id],soc,1)
+    return (soc - self.type_to_yints[self.cs_id_to_type[node.node_id]][seg_idx]) / \
+      self.type_to_slopes[self.cs_id_to_type[node.node_id]][seg_idx]
