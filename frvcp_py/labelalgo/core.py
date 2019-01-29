@@ -284,6 +284,8 @@ class FRVCPInstance(object):
     self.energy_matrix = instance["energy_matrix"] # [i][j] are indices in g, not gprime
     self.time_matrix = instance["time_matrix"]
     self.process_times = instance["process_times"]
+    # number of nodes in the underlying graph G
+    self.n_nodes_g = len(self.process_times)
     self.max_q = instance["max_q"]
     self.init_soc = instance["init_soc"]
     self.t_max = instance["t_max"]
@@ -296,13 +298,25 @@ class FRVCPInstance(object):
     # similarly to how they are used in the labeling algorithm:
     # [0][:] are time bkpts, [1][:] are charge bkpts
     self.type_to_supp_pts = self._make_type_to_supp_pts()
-    # keys are cs types, values are arrays of slopes
+    # keys are cs types, values are arrays of slopes and y-intercepts
     self.type_to_slopes = self._make_type_to_slopes()
     self.type_to_yints = self._make_type_to_yintercepts()
+    # max slope across all charging stations
     self.max_slope = self._compute_max_slope()
     # id is the CS's index in G
     self.cs_id_to_type = self._make_cs_id_to_type_map()
+    # list of nodes for the vertices in G
+    self.nodes_g = self._make_nodes()
 
+  def get_cs_nodes(self) -> List[Node]:
+    return [node for node in self.nodes_g if node.type == NodeType.CHARGING_STATION]
+  
+  def _make_nodes(self) -> List[Node]:
+    return [
+      Node(i, f'node-{i}',
+        (NodeType.CHARGING_STATION if i in self.cs_id_to_type else NodeType.CUSTOMER))
+      for i in range(len(self.energy_matrix)) ]
+  
   def _make_type_to_supp_pts(self):
     return {cs_type:[pts["time"],pts["charge"]] for cs_type,pts in self.cs_bkpt_info.items()}
   

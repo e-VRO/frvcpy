@@ -14,7 +14,7 @@ class Solver(object):
     
     max_soc_at_arrival = self._compute_max_soc_at_arrival() #list[float]
     
-    # TODO in "can go direct" method, check for overlap of completion time and release time, bc if they don't, then we have to idle somewhere in between (or we could allow go direct, but this would not be exactly in line with problem (would be a relaxation), so would be a looser bound)
+    # TODO in our version for the RP-AEV, in "can go direct" method, check for overlap of completion time and release time, bc if they don't, then we have to idle somewhere in between (or we could allow go direct, but this would not be exactly in line with problem (would be a relaxation), so would be a looser bound)
     possible_direct_connect = self._compute_possible_direct_connect(min_soc_at_departure,max_soc_at_arrival) #list[bool]
     
     possible_cs_connect = self._compute_possible_cs_connections(min_soc_at_departure, max_soc_at_arrival) #list[list[list[bool]]]
@@ -27,7 +27,9 @@ class Solver(object):
     
     node_local_id_arr = len(self.route)-1 #int
     
-    nodes_gpr = self._build_nodes()#list[Node]
+    nodes_gpr = self._build_gpr_nodes()#list[Node]
+    print(nodes_gpr)
+    print(this) # will break the script
     
     adjacencies = self._compute_adjacencies(nodes_gpr, possible_direct_connect,
       possible_cs_connect, possible_cs_detour, possible_cs_link) #list[list[int]]
@@ -102,9 +104,9 @@ class Solver(object):
     # TODO
     return 'todo'
 
-  def _build_nodes(self) -> List[Node]:
-    # TODO
-    return 'todo'
+  def _build_gpr_nodes(self) -> List[Node]:
+    return ([self.instance.nodes_g[self.route[i]] for i in range(len(self.route))] +
+      ((self.instance.get_cs_nodes())*(len(self.route)-1)))
 
   def _compute_adjacencies(self, 
     nodes_gpr: List[Node],
