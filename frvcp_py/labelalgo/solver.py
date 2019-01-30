@@ -235,10 +235,19 @@ class Solver(object):
     min_energy_at_departure = [None for _ in range(len(nodes))]
     max_energy_at_departure = [None for _ in range(len(nodes))]
     
+    # region traveling and charging after departing nodes
+    # initialize trackers
     energy = 0
     time = 0
     time_charge = 0
     next_id = self.route[-1]
+
+    # set entries for last stop in route
+    min_travel_time_after_node[next_id] = time
+    min_energy_consumed_after_node[next_id] = energy
+    min_travel_charge_time_after_node[next_id] = time_charge
+
+    # set entries for all others
     for i in range(len(self.route)-2,-1,-1):
       for j in range(len(self.route)+i*self.instance.n_cs,len(self.route)+(i+1)*self.instance.n_cs):
         curr_id = nodes[j].node_id
@@ -256,6 +265,9 @@ class Solver(object):
       min_travel_charge_time_after_node[i] = time_charge
       next_id = curr_id
 
+    # endregion
+
+    # region bounds on time and charge when departing nodes
     for i in range(len(nodes)):
       curr_id = nodes[i].node_id
       min_energy_to_charge = min_energy_consumed_after_node[i] - self.instance.max_q
@@ -264,6 +276,7 @@ class Solver(object):
         latest_departure_time[i] -= min_energy_to_charge/self.instance.max_slope
       min_energy_at_departure[i] = self.instance.get_min_energy_to_cs(curr_id)
       max_energy_at_departure[i] = self.instance.max_q
+      # endregion
     
     return (
       min_travel_time_after_node,
