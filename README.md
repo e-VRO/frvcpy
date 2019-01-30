@@ -7,3 +7,4 @@ While other solution methods may be implemented in the future, currently we offe
  - Charging stations' charging functions are non-convex and either linear or piecewise linear
  - Types of nodes in the problem are either customer or charging station. No other node types paid attention to (depot type exists, but is handled identically to a customer node)
  - If `n` is the number of nodes in the underlying graph (which we will refer to as `G`), then the energy and time matrices in the passed JSON instance must be of size `n`x`n`; similarly, the processing times must be `n`x`1`
+ - Assumes there is no energy required to process a customer

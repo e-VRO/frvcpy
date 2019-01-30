@@ -292,8 +292,10 @@ class FRVCPInstance(object):
     # keys are cs types, values are dicts that map "time" or "charge" to corresponding arrays of floats
     self.cs_bkpt_info = instance["breakpoints_by_type"]
     self.cs_bkpt_info = {int(k):v for k,v in self.cs_bkpt_info.items()}
-    # array of objs with attrs 'node_id' and 'type'
+    # list of objs with attrs 'node_id' and 'type'
     self.cs_details = instance["css"]
+    # number of charging stations
+    self.n_cs = len(self.cs_details)
     # keys are cs types, values are 2d arrays of cs breakpoints, formatted
     # similarly to how they are used in the labeling algorithm:
     # [0][:] are time bkpts, [1][:] are charge bkpts
