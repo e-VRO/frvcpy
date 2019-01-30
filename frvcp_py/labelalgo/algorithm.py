@@ -69,6 +69,7 @@ class PCCMAlgorithm(object):
     self.unset_labels[self.node_local_id_dep].put(first_label)
 
     while(self.heap):
+      
       # heap element containing the local ID of the node whose key time is smallest
       min_node_f = self.heap.pop_task()
       min_node_local_id = min_node_f.data
@@ -130,11 +131,15 @@ class PCCMAlgorithm(object):
         # if new label exists, modify key associated with node
         if new_label is not None:
           self.unset_labels[next_node_local_id].put(new_label)
-          if (self.in_heap[next_node_local_id] and 
-            new_label.key_time < self.key[next_node_local_id]
-          ):
-            self.heap.add_task(self.heap_elements[next_node_local_id],new_label.key_time)
+          # if we already have something in the heap for the next node
+          if self.in_heap[next_node_local_id]:
+            # if the new label is better than the last one at that node
+            if new_label.key_time < self.key[next_node_local_id]:
+              # update the key time for it
+              self.heap.add_task(self.heap_elements[next_node_local_id],new_label.key_time)
+          # if this is the first label for the node
           else:
+            # add it to the heap
             self.heap_elements[next_node_local_id] = HeapE(next_node_local_id)
             self.heap.add_task(self.heap_elements[next_node_local_id],new_label.key_time)
             self.in_heap[next_node_local_id] = True
@@ -289,7 +294,7 @@ class PCCMAlgorithm(object):
           continue
 
         # don't switch if energy is sufficient to finish the route
-        if soc_at_cs > self.max_energy_at_departure:
+        if soc_at_cs > self.max_energy_at_departure[curr_local_id]:
           continue
 
         # switch only if the new slope is better than the current
@@ -384,7 +389,7 @@ class PCCMAlgorithm(object):
     compute_first_point = False
     for k in range(n_pts):
       new_supp_pts_temp[0][k] = supp_pts[0][k] + label.time_last_arc
-      new_supp_pts_temp[1][k] = supp_pts[1][k] + label.energy_last_arc
+      new_supp_pts_temp[1][k] = supp_pts[1][k] - label.energy_last_arc
 
       # stop at first supp pt with:
       # more SOC than needed or
@@ -425,6 +430,10 @@ class PCCMAlgorithm(object):
     if last_k != n_pts:
       last_k += 1
     
+    # instantiate things we'll set for the next label
+    slope_now = None
+    y_int_now = None
+    new_supp_pts = None
     # make new supporting points
     if not compute_first_point:
       # all supp pts (up to those with index >= last_k) are feasible

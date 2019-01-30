@@ -39,6 +39,9 @@ class PseudoFibonacciHeap(PriorityQueue):
     import itertools
     self._counter = itertools.count()     # unique sequence count
 
+  def __bool__(self):
+    return len(self._pq) > 0
+  
   def add_task(self, task: Any, priority: float=0):
       'Add a new task or update the priority of an existing task'
       if task in self._entry_finder:
@@ -362,6 +365,14 @@ class FRVCPInstance(object):
       value < self.type_to_supp_pts[cs_type][axis][idx+1]
     ):
       idx += 1
+      # for the last segment, check its upper limit
+      if idx == len(self.type_to_supp_pts[cs_type][axis])-1:
+        # if it's equal to the upper limit, return the index for the last segment
+        if value == self.type_to_supp_pts[cs_type][axis][idx]:
+          return idx-1
+        # otherwise, it was a bad request
+        else:
+          raise ValueError(f'Request out of bounds for segment index. Value passed: {value}')
     return idx
   
   def get_slope(self, node: Node, soc: float=None):

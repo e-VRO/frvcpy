@@ -243,9 +243,9 @@ class Solver(object):
     next_id = self.route[-1]
 
     # set entries for last stop in route
-    min_travel_time_after_node[next_id] = time
-    min_energy_consumed_after_node[next_id] = energy
-    min_travel_charge_time_after_node[next_id] = time_charge
+    min_travel_time_after_node[len(self.route)-1] = time
+    min_energy_consumed_after_node[len(self.route)-1] = energy
+    min_travel_charge_time_after_node[len(self.route)-1] = time_charge
 
     # set entries for all others
     for i in range(len(self.route)-2,-1,-1):
