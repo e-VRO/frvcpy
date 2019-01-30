@@ -37,6 +37,10 @@ class PCCMAlgorithm(object):
     # lower bound on the SOC the EV can have as it departs each node (using local ID)
     self.min_energy_at_departure = min_energy_at_departure
 
+  def _get_key(self, label: PCCMLabel):
+    """Provides the key associated with a label."""
+    return (label.key_time, 1/label.supporting_pts[1][0])
+  
   def run_multiobj_shortest_path_algo(self, dominance, stop_at_first):
     
     # is there an unset label associated with each node (using ID) in the updatable priority queue
@@ -48,7 +52,7 @@ class PCCMAlgorithm(object):
     from queue import PriorityQueue
     # priority queues of unset labels for each node
     # ("for CS only labels at departure" -- meaning it represents keytime when departing the CS?)
-    self.unset_labels = [PriorityQueue() for _ in self.nodes_gpr]
+    self.unset_labels = [PseudoFibonacciHeap() for _ in self.nodes_gpr]
     
     # list of set (nondominated) labels for each node
     # ("for CS only labels at departure" -- meaning it represents keytime when departing the CS?)
@@ -63,10 +67,10 @@ class PCCMAlgorithm(object):
     # build first label
     first_label = self._build_first_label()
     self.heap_elements[self.node_local_id_dep] = HeapE(self.node_local_id_dep)
-    self.key[self.node_local_id_dep] = first_label.key_time
-    self.heap.add_task(self.heap_elements[self.node_local_id_dep], first_label.key_time)
+    self.key[self.node_local_id_dep] = self._get_key(first_label)
+    self.heap.add_task(self.heap_elements[self.node_local_id_dep], self._get_key(first_label))
     self.in_heap[self.node_local_id_dep] = True
-    self.unset_labels[self.node_local_id_dep].put(first_label)
+    self.unset_labels[self.node_local_id_dep].add_task(first_label, self._get_key(first_label))
 
     while(self.heap):
       
@@ -79,7 +83,7 @@ class PCCMAlgorithm(object):
       self.key[min_node_local_id] = None
 
       # Return smallest (wrt key) unset label associated with current node
-      label_to_set = self.unset_labels[min_node_local_id].get()
+      label_to_set = self.unset_labels[min_node_local_id].pop_task()
 
       # compute supporting points of label
       label_to_set = self._compute_supporting_points(label_to_set)
@@ -97,13 +101,13 @@ class PCCMAlgorithm(object):
       ):
         new_labels = self._build_label_list(label_to_set)
         for new_label in new_labels:
-          self.unset_labels[min_node_local_id].put(new_label)
+          self.unset_labels[min_node_local_id].add_task(new_label, self._get_key(new_label))
         self._insert_new_node_in_heap(min_node_local_id)
         continue
 
       # if current node is the destination node
       if min_node_local_id == self.node_local_id_arr:
-        self.set_labels[min_node_local_id].put(label_to_set)
+        self.set_labels[min_node_local_id].append(label_to_set)
         if stop_at_first:
           # we're done
           break
@@ -113,7 +117,7 @@ class PCCMAlgorithm(object):
           continue
       
       # mark current label as set
-      self.set_labels.append(label_to_set)
+      self.set_labels[min_node_local_id].append(label_to_set)
 
       # extend current label
       n_adj_nodes = len(self.adjacency_list[min_node_local_id])
@@ -130,20 +134,22 @@ class PCCMAlgorithm(object):
         
         # if new label exists, modify key associated with node
         if new_label is not None:
-          self.unset_labels[next_node_local_id].put(new_label)
+          self.unset_labels[next_node_local_id].add_task(new_label, self._get_key(new_label))
           # if we already have something in the heap for the next node
           if self.in_heap[next_node_local_id]:
             # if the new label is better than the last one at that node
-            if new_label.key_time < self.key[next_node_local_id]:
-              # update the key time for it
-              self.heap.add_task(self.heap_elements[next_node_local_id],new_label.key_time)
+            if self._get_key(new_label) < self.key[next_node_local_id]:
+              # update the key time for it in the heap
+              self.heap.add_task(self.heap_elements[next_node_local_id], self._get_key(new_label))
+              # and in the self.key reference
+              self.key[next_node_local_id] = self._get_key(new_label)
           # if this is the first label for the node
           else:
             # add it to the heap
             self.heap_elements[next_node_local_id] = HeapE(next_node_local_id)
-            self.heap.add_task(self.heap_elements[next_node_local_id],new_label.key_time)
+            self.heap.add_task(self.heap_elements[next_node_local_id], self._get_key(new_label))
             self.in_heap[next_node_local_id] = True
-            self.key[next_node_local_id] = new_label.key_time
+            self.key[next_node_local_id] = self._get_key(new_label)
       
       # add min node to the heap
       self._insert_new_node_in_heap(min_node_local_id)
@@ -357,8 +363,8 @@ class PCCMAlgorithm(object):
   
   def _insert_new_node_in_heap (self, local_node_id: int):
     # if current node has unset label,insert this node in the heap with a new key
-    if not self.unset_labels[local_node_id]: # true if empty
-      new_key = self.unset_labels[local_node_id].queue[0].key_time
+    if self.unset_labels[local_node_id]:
+      new_key = self._get_key(self.unset_labels[local_node_id].peek())
       self.heap_elements[local_node_id] = HeapE(local_node_id)
       self.heap.add_task(self.heap_elements[local_node_id], new_key)
       self.in_heap[local_node_id] = True
@@ -498,10 +504,10 @@ class PCCMAlgorithm(object):
       charging_index = 0
       for node in nodes_path:
         if node.type == NodeType.CHARGING_STATION:
-          route.append((node.node_id, 0.0, charge_amts[charging_index]))
+          route.insert(0,(node.node_id, 0.0, charge_amts[charging_index]))
           charging_index += 1
         else:
-          route.append(node.node_id, None, None)
+          route.insert(0,(node.node_id, None, None))
       return route
 
   def get_objective_value(self) -> float:

@@ -1,4 +1,4 @@
-from typing import List, Any
+from typing import List, Any, Tuple
 from enum import Enum
 class NodeType(Enum):
   DEPOT = 0,
@@ -42,7 +42,7 @@ class PseudoFibonacciHeap(PriorityQueue):
   def __bool__(self):
     return len(self._pq) > 0
   
-  def add_task(self, task: Any, priority: float=0):
+  def add_task(self, task: Any, priority: Tuple[float,float]=0):
       'Add a new task or update the priority of an existing task'
       if task in self._entry_finder:
           self.remove_task(task)
@@ -64,6 +64,9 @@ class PseudoFibonacciHeap(PriorityQueue):
               del self._entry_finder[task]
               return task
       raise KeyError('pop from an empty priority queue')
+
+  def peek(self) -> Any:
+    return self._pq[0][2]
 
 class PCCMLabel(object):
   """Class defining a label for the labeling algorithm of
@@ -110,7 +113,7 @@ class PCCMLabel(object):
     # SOC dominance
     # 1) supp pts of this SOC function
     for k in range(n_pts):
-      soc_other = other.getSOCDichotomic(self.supporting_pts[0][k])
+      soc_other = other.get_soc_dichotomic(self.supporting_pts[0][k])
       if self.supporting_pts[1][k] < soc_other:
         return False
 
@@ -195,7 +198,7 @@ class PCCMLabel(object):
 
     # charge amount at last visited CS
     charge_amts = [(self.energy_consumed_since_last_cs + 
-      self.get_first_supp_pt_soc - 
+      self.get_first_supp_pt_soc() - 
       self.soc_arr_to_last_cs)]
       
     # computation of other charge amounts (if any)
@@ -206,7 +209,7 @@ class PCCMLabel(object):
       stop = False
       while not stop:
         charge_reqd = (curr_label.energy_consumed_since_last_cs + 
-          curr_label.get_first_supp_pt_soc - 
+          curr_label.get_first_supp_pt_soc() - 
           curr_label.soc_arr_to_last_cs)
         curr_label = curr_label.parent
         if curr_label.last_visited_cs != s_last_vis_cs:
@@ -240,6 +243,9 @@ class PCCMLabel(object):
     return s
 
   # region comparable methods
+  def __hash__(self):
+    return hash(str(self))
+  
   def compare_to(self, other) -> int:
     if self.key_time < other.key_time:
       return -1
