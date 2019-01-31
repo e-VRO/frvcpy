@@ -39,7 +39,8 @@ class PCCMAlgorithm(object):
 
   def _get_key(self, label: PCCMLabel):
     """Provides the key associated with a label."""
-    return (label.key_time, 1/label.supporting_pts[1][0])
+    return (label.key_time, \
+      float('inf') if label.supporting_pts[1][0] == 0 else 1/label.supporting_pts[1][0])
   
   def run_multiobj_shortest_path_algo(self, dominance, stop_at_first):
     
@@ -313,7 +314,7 @@ class PCCMAlgorithm(object):
         # don't switch if soc when departing from last CS was sufficient to finish route
         if (curr_label.last_visited_cs is not None and
           soc_at_cs + curr_label.energy_consumed_since_last_cs > 
-            self.max_energy_at_departure
+            self.max_energy_at_departure[curr_label.last_visited_cs]
         ):
           continue
 
@@ -504,10 +505,10 @@ class PCCMAlgorithm(object):
       charging_index = 0
       for node in nodes_path:
         if node.type == NodeType.CHARGING_STATION:
-          route.insert(0,(node.node_id, 0.0, charge_amts[charging_index]))
+          route.insert(0,(node.node_id, None, charge_amts[charging_index]))
           charging_index += 1
         else:
-          route.insert(0,(node.node_id, None, None))
+          route.insert(0,(node.node_id))
       return route
 
   def get_objective_value(self) -> float:
