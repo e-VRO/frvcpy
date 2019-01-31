@@ -1,7 +1,7 @@
 # specify instance and route
-instance_filename = "./instances/LAInstance-c30s4l4dT5.json"
+instance_filename = "./instances/LAInstance-c20s3l4dT2.json"
 import random
-cust_seq = list(range(1,30))
+cust_seq = list(range(1,20))
 random.shuffle(cust_seq)
 route=[0]+cust_seq+[0]
 print(f"Initial route:\n{route}")
