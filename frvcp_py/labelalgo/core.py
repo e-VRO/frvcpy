@@ -40,7 +40,7 @@ class PseudoFibonacciHeap(PriorityQueue):
     self._counter = itertools.count()     # unique sequence count
 
   def __bool__(self):
-    return len(self._pq) > 0
+    return self.peek() is not None
   
   def add_task(self, task: Any, priority: Tuple[float,float]=0):
       'Add a new task or update the priority of an existing task'
@@ -66,7 +66,16 @@ class PseudoFibonacciHeap(PriorityQueue):
       raise KeyError('pop from an empty priority queue')
 
   def peek(self) -> Any:
-    return self._pq[0][2]
+    """Returns the lowest priority task without removing (popping) it. 
+    Returns None if empty.
+    """
+    i=0
+    while i < len(self._pq):
+      if self._pq[i][2] is not self._REMOVED:
+        return self._pq[i][2]
+      else:
+        i += 1
+    return None
 
 class PCCMLabel(object):
   """Class defining a label for the labeling algorithm of
