@@ -1,5 +1,5 @@
 from typing import List,Any
-from frvcp_py.labelalgo.core import Node,NodeType,FRVCPInstance,PseudoFibonacciHeap,PriorityQueue,HeapE,PCCMLabel
+from frvcp_py.labelalgo.core import Node,NodeType,FRVCPInstance,PseudoFibonacciHeap,HeapE,PCCMLabel
 class PCCMAlgorithm(object):
   """The Froger, et al. (2018) labeling algorithm to solve the FRVCP."""
 
