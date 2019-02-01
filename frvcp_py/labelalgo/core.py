@@ -98,6 +98,7 @@ class PCCMLabel(object):
     self.energy_last_arc = energy_last_arc
     self.parent = parent
     self.y_intercept = self._compute_y_intercept() if y_intercept is None else y_intercept
+    self.n_pts = len(self.supporting_pts[0])
 
   def _compute_y_intercept(self) -> List[float]:
     if self.slope is None:
@@ -111,22 +112,19 @@ class PCCMLabel(object):
     if self.trip_time > other.trip_time:
       return False
     
-    n_pts = len(self.supporting_pts[0])
-    n_pts_other = len(other.supporting_pts[0])
-    
     # energy dominance (larger reachable SOC)
     if self.supporting_pts[1][-1] < other.supporting_pts[1][-1]:
       return False
     
     # SOC dominance
     # 1) supp pts of this SOC function
-    for k in range(n_pts):
+    for k in range(self.n_pts):
       soc_other = other.get_soc_dichotomic(self.supporting_pts[0][k])
       if self.supporting_pts[1][k] < soc_other:
         return False
 
     # 2) supp pts of the other SOC function
-    for k in range(n_pts_other):
+    for k in range(other.n_pts):
       soc = self.get_soc_dichotomic(other.supporting_pts[0][k])
       if soc < other.supporting_pts[1][k]:
         return False
@@ -137,12 +135,11 @@ class PCCMLabel(object):
     if time < self.trip_time:
       return -float('inf')
 		
-    n_pts = len(self.supporting_pts)
     if time >= self.supporting_pts[0][-1]:
       return self.supporting_pts[1][-1]
     
     low = 0
-    high = n_pts-1
+    high = self.n_pts-1
     while (low + 1 < high):
       mid = (low + high) // 2
       if self.supporting_pts[0][mid] < time:
