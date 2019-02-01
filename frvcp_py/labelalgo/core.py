@@ -23,9 +23,8 @@ class HeapE(object):
   def __init__(self, data: Any):
     self.data = data
 
-from queue import PriorityQueue
 import heapq
-class PseudoFibonacciHeap(PriorityQueue):
+class PseudoFibonacciHeap():
   """Defines a priority queue whose keys can be updated.
   This mimics the Fibonacci heap object used in the original labeling
   algorithm, allowing for increase-/decrease-key functionality.
@@ -253,7 +252,9 @@ class PCCMLabel(object):
 
   # region comparable methods
   def __hash__(self):
-    return hash(str(self))
+    return hash((self.node_id_for_label, self.key_time, self.trip_time, \
+      None if self.parent is None else self.parent.node_id_for_label, \
+      self.supporting_pts[0][0], self.supporting_pts[1][0]))
   
   def compare_to(self, other) -> int:
     if self.key_time < other.key_time:
