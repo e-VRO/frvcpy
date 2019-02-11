@@ -20,7 +20,16 @@ def t(i_node, j_node, speed) -> float:
 def e(i_node,j_node,consump_rate) -> float:
   return dist(i_node,j_node)*consump_rate
 
-# primary method here that converts an old (xml) instance file into a new (json) one
+def _get_fastest_cs_type(cfs):
+  # if there's only one type of CS, then that's what it is
+  if not isinstance(cfs,(list,)):
+    return cfs['@cs_type']
+
+  # otherwise, get the fastest of the types that are present in the instance
+  else:
+    return min(CS_INT, key=(lambda k: float('inf') if (k not in [cf['@cs_type'] for cf in cfs]) else CS_INT[k]))
+
+# primary method; converts an old (xml) instance file into a new (json) one
 def convert(full_filename_old, full_filename_new=None):
 
   #filename_old = "tc0c10s3cf1"
@@ -36,18 +45,19 @@ def convert(full_filename_old, full_filename_new=None):
   nodes = network["nodes"]["node"]
   ev = instance_xml["fleet"]["vehicle_profile"]
 
-  # append depot's CS to nodes
-  nodes.append({'@id':str(len(nodes)),'cx':nodes[0]['cx'],'cy':nodes[0]['cy'],'@type':'2','custom':{'cs_type':'fast'}})
-
-  # CSs
-  css = [node for node in nodes if node['@type'] == '2']
-
   # vehicle info
   speed = float(ev['speed_factor'])
   max_t = float(ev['max_travel_time'])
   consump_rate = float(ev['custom']['consumption_rate'])
   max_q = float(ev['custom']['battery_capacity'])
   cfs = ev['custom']['charging_functions']['function']
+
+  # append depot's CS to nodes
+  fastest = _get_fastest_cs_type(cfs)
+  nodes.append({'@id':str(len(nodes)),'cx':nodes[0]['cx'],'cy':nodes[0]['cy'],'@type':'2','custom':{'cs_type':fastest}})
+
+  # CSs
+  css = [node for node in nodes if node['@type'] == '2']
 
   # instantiate output
   instance = {}
