@@ -108,4 +108,4 @@ tests/reports/
 .vscode/
 
 # converter from older XML instances to the JSON format
-/converting
+/converting-evrppp-evrpnlc
