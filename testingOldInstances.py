@@ -36,12 +36,18 @@ def run_checker():
   instance_names = [os.fsdecode(instance) for instance in os.listdir(os.fsencode(instances_folder))]
 
   for instance in instance_names:
-
+    
+    # a name for our converted instance file
+    temp_instance_name = 'temp_converted_instance.json'
+    # in case we encounter this file, skip it
+    if instance == temp_instance_name:
+      continue
+    instance_jsonname = f'{instances_folder}/{temp_instance_name}'
+    
     print(f'Instance:\n{instance}')
     instance_fullname = f'{instances_folder}/{instance}'
 
     # convert the instance to one that can be read by this implementation of the labeling algorithm
-    instance_jsonname = f'{instances_folder}/temp_converted_instance.json'
     convertOldInstances.convert(instance_fullname,instance_jsonname)
 
     routes = get_routes(instance, routes_folder)
