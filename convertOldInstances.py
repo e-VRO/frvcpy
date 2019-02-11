@@ -47,7 +47,7 @@ def convert(full_filename_old, full_filename_new=None):
 
   # vehicle info
   speed = float(ev['speed_factor'])
-  max_t = float(ev['max_travel_time'])
+  max_t = float(ev['max_travel_time']) if ('max_travel_time' in ev) else 80000 # big upper bound if none provided
   consump_rate = float(ev['custom']['consumption_rate'])
   max_q = float(ev['custom']['battery_capacity'])
   cfs = ev['custom']['charging_functions']['function']
