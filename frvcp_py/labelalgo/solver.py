@@ -15,7 +15,6 @@ class Solver(object):
     
     max_allowed_soc_at_arrival = self._compute_max_soc_at_arrival() #list[float]
     
-    # TODO in our version for the RP-AEV, in "can go direct" method, check for overlap of completion time and release time, bc if they don't, then we have to idle somewhere in between (or we could allow go direct, but this would not be exactly in line with problem (would be a relaxation), so would be a looser bound)
     # length of direct connect is actually len(route)-1
     possible_direct_connect = self._compute_possible_direct_connect(min_soc_at_departure,max_allowed_soc_at_arrival) #list[bool]
     
@@ -95,7 +94,6 @@ class Solver(object):
     Output is a list of length len(self.route)-1:
     [i] = can we go from stop i in the route to stop i+1 directly
     """
-    # TODO in RP-AEV, need to check if (max_soc_at_arrival[this] - process_energy[this] - energymatrix[this][next] - process_energy[next])>=min_soc_at_departure[next]
     return [
       (max_soc_at_arrival[self.route[i]] - \
         self.instance.energy_matrix[self.route[i]][self.route[i+1]] >= min_soc_at_departure[i+1]) \
@@ -252,7 +250,7 @@ class Solver(object):
       for j in range(len(self.route)+i*self.instance.n_cs,len(self.route)+(i+1)*self.instance.n_cs):
         curr_id = nodes[j].node_id
         min_travel_time_after_node[j] = time + self.instance.time_matrix[curr_id][next_id] + self.instance.process_times[next_id]
-        min_energy_consumed_after_node[j] = energy + self.instance.energy_matrix[curr_id][next_id] # in RP-AEV, consider processing energy
+        min_energy_consumed_after_node[j] = energy + self.instance.energy_matrix[curr_id][next_id]
         min_travel_charge_time_after_node[j] = time_charge + (self.instance.time_matrix[curr_id][next_id] +
           self.instance.process_times[next_id] + self.instance.energy_matrix[curr_id][next_id] / self.instance.max_slope)
       curr_id = self.route[i]
