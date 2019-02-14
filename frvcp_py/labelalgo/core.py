@@ -290,20 +290,20 @@ class PCCMLabel(object):
 
 import json
 class FRVCPInstance(object):
-  def __init__(self, instance_filename: str):
+  def __init__(self, instance_filename: str, init_soc: float):
     with open(instance_filename) as f:
       instance_json = json.load(f)
-      self._store_instance_parameters(instance_json)
+      self._store_instance_parameters(instance_json, init_soc)
     return
   
-  def _store_instance_parameters(self, instance):
+  def _store_instance_parameters(self, instance, init_soc: float):
     self.energy_matrix = instance["energy_matrix"] # [i][j] are indices in g, not gprime
     self.time_matrix = instance["time_matrix"]
     self.process_times = instance["process_times"]
     # number of nodes in the underlying graph G
     self.n_nodes_g = len(self.process_times)
     self.max_q = instance["max_q"]
-    self.init_soc = instance["init_soc"]
+    self.init_soc = init_soc
     self.t_max = instance["t_max"]
     # keys are cs types, values are dicts that map "time" or "charge" to corresponding arrays of floats
     self.cs_bkpt_info = instance["breakpoints_by_type"]

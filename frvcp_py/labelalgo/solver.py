@@ -3,8 +3,8 @@ from frvcp_py.labelalgo.algorithm import PCCMAlgorithm
 from typing import List, Any, Tuple
 
 class Solver(object):
-  def __init__(self, instance_filename: str, route: List[int]):
-    self.instance = FRVCPInstance(instance_filename)
+  def __init__(self, instance_filename: str, route: List[int], init_soc: float):
+    self.instance = FRVCPInstance(instance_filename, init_soc)
     self.route = route
 
   def solve(self) -> Tuple[float, List[Any]]:

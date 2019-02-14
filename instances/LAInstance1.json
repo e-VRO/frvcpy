@@ -1,6 +1,5 @@
 {
   "t_max":5000,
-  "init_soc": 500,
   "max_q": 500,
   "process_times": [0,50,100,150,0],
   "energy_matrix": [
