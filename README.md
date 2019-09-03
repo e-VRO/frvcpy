@@ -3,4 +3,4 @@ The __fixed-route vehicle charging problem__ (FRVCP) is characterized by a vehic
 
 We anticipate branching this repository when new variants of the FRVCP are addressed. As it stands, the only variant solved is the original described in Montoya et al. (2017) for the Electric Vehicle Routing Problem with Non-linear Charging Functions (E-VRP-NLC)
   
-To solve the FRVCP, we offer the labeling algorithm from Froger et al. (2019), which provides an exact solution to the FRVCP.
+To solve the FRVCP, we offer the labeling algorithm from Froger et al. (2019), which provides an exact solution.
