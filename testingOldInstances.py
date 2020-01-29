@@ -1,6 +1,6 @@
 import os
 import xmltodict
-from frvcp_py.labelalgo.solver import Solver
+from frvcpy.solver import Solver
 import convertOldInstances
 
 # define function to get routes given an instance
