@@ -1,21 +1,22 @@
 from typing import List, Any, Tuple
 from enum import Enum
+
 class NodeType(Enum):
   DEPOT = 0,
   CUSTOMER = 1,
   CHARGING_STATION = 2
 
 class Node(object):
-  def __init__(self, node_id: int, name: str, type: NodeType):
+  def __init__(self, node_id: int, name: str, node_type: NodeType):
     """Defines a node for the graph underlying an FRVCP."""
     self.node_id = node_id
     self.name = name
-    self.type = type
+    self.type = node_type
 
   def __str__(self):
     return f'({self.node_id}; {self.type})'
 
-class HeapE(object):
+class HeapElement(object):
   """Represents an element in the labeling algorithm's heap.
   Since the data type used for heap nodes in the labeling
   algorithm is just int, this object is largely unnecessary.
@@ -76,7 +77,7 @@ class PseudoFibonacciHeap():
         i += 1
     return None
 
-class PCCMLabel(object):
+class NodelLabel(object):
   """Class defining a label for the labeling algorithm of
   Froger (2018) for the fixed-route vehicle charging problem.
   """
@@ -101,6 +102,7 @@ class PCCMLabel(object):
     self.n_pts = len(self.supporting_pts[0])
 
   def _compute_y_intercept(self) -> List[float]:
+    """Provides slopes for the segments in self.supporting_pts"""
     if self.slope is None:
       return None
     else:
@@ -162,12 +164,9 @@ class PCCMLabel(object):
   def get_path(self) -> List[int]:
     path = []
     curr_parent = self
-    stop = False
-    while not stop:
+    while curr_parent is not None:
       path.append(curr_parent.node_id_for_label)
       curr_parent = curr_parent.parent
-      if curr_parent is None:
-        stop = True
     return path
   
   def get_path_from_last_customer (self) -> List[int]:
@@ -289,22 +288,30 @@ class PCCMLabel(object):
   # endregion
 
 import json
-class FRVCPInstance(object):
-  def __init__(self, instance_filename: str, init_soc: float):
-    with open(instance_filename) as f:
-      instance_json = json.load(f)
-      self._store_instance_parameters(instance_json, init_soc)
+class FrvcpInstance(object):
+  def __init__(self, instance):
+    """Instantiate a frvcpy-compliant problem instance.
+
+    'instance' parameter can either be a Python dictionary with the required information, or
+    it can be a string pointing to a JSON file containing this information.
+    """
+    
+    # if string, assumed to be filename
+    if isinstance(instance, str):
+      with open(instance) as f:
+        instance = json.load(f)
+
+    self._store_instance_parameters(instance)
     return
   
-  def _store_instance_parameters(self, instance, init_soc: float):
+  def _store_instance_parameters(self, instance):
     self.energy_matrix = instance["energy_matrix"] # [i][j] are indices in g, not gprime
     self.time_matrix = instance["time_matrix"]
-    self.process_times = instance["process_times"]
+    self.process_times = instance["process_times"] if "process_times" in instance else [0 for _ in self.energy_matrix]
     # number of nodes in the underlying graph G
     self.n_nodes_g = len(self.process_times)
     self.max_q = instance["max_q"]
-    self.init_soc = init_soc
-    self.t_max = instance["t_max"]
+    self.t_max = instance["t_max"] if "t_max" in instance else 6e9 # come onnnn, 6 billion!
     # keys are cs types, values are dicts that map "time" or "charge" to corresponding arrays of floats
     self.cs_bkpt_info = instance["breakpoints_by_type"]
     self.cs_bkpt_info = {int(k):v for k,v in self.cs_bkpt_info.items()}

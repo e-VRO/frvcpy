@@ -1,10 +1,11 @@
-from typing import List,Any
-from frvcp_py.labelalgo.core import Node,NodeType,FRVCPInstance,PseudoFibonacciHeap,HeapE,PCCMLabel
-class PCCMAlgorithm(object):
+from typing import List,Any,Tuple
+from frvcpy.core import Node,NodeType,FrvcpInstance,PseudoFibonacciHeap,HeapElement,NodelLabel
+
+class FrvcpAlgo(object):
   """The Froger, et al. (2018) labeling algorithm to solve the FRVCP."""
 
   def __init__(self,
-    instance: FRVCPInstance,
+    instance: FrvcpInstance,
     init_soc: float, 
     nodes_gpr: List[Node], 
     adjacency_list: List[List[int]],
@@ -37,7 +38,7 @@ class PCCMAlgorithm(object):
     # lower bound on the SOC the EV can have as it departs each node (using local ID)
     self.min_energy_at_departure = min_energy_at_departure
 
-  def _get_key(self, label: PCCMLabel):
+  def _get_key(self, label: NodelLabel):
     """Provides the key associated with a label."""
     return (label.key_time, \
       float('inf') if label.supporting_pts[1][0] == 0 else 1/label.supporting_pts[1][0])
@@ -67,7 +68,7 @@ class PCCMAlgorithm(object):
 
     # build first label
     first_label = self._build_first_label()
-    self.heap_elements[self.node_local_id_dep] = HeapE(self.node_local_id_dep)
+    self.heap_elements[self.node_local_id_dep] = HeapElement(self.node_local_id_dep)
     self.key[self.node_local_id_dep] = self._get_key(first_label)
     self.heap.add_task(self.heap_elements[self.node_local_id_dep], self._get_key(first_label))
     self.in_heap[self.node_local_id_dep] = True
@@ -147,7 +148,7 @@ class PCCMAlgorithm(object):
           # if this is the first label for the node
           else:
             # add it to the heap
-            self.heap_elements[next_node_local_id] = HeapE(next_node_local_id)
+            self.heap_elements[next_node_local_id] = HeapElement(next_node_local_id)
             self.heap.add_task(self.heap_elements[next_node_local_id], self._get_key(new_label))
             self.in_heap[next_node_local_id] = True
             self.key[next_node_local_id] = self._get_key(new_label)
@@ -156,7 +157,7 @@ class PCCMAlgorithm(object):
       self._insert_new_node_in_heap(min_node_local_id)
     return
 
-  def _can_be_extended_to(self, curr_label: PCCMLabel, next_node_local_id: int) -> bool:
+  def _can_be_extended_to(self, curr_label: NodelLabel, next_node_local_id: int) -> bool:
     next_node = self.nodes_gpr[next_node_local_id]
     
     # Check is for charging stations only
@@ -194,9 +195,9 @@ class PCCMAlgorithm(object):
 
     return True
   
-  def _relax_arc(self, curr_label: PCCMLabel, next_node_local_id: int,
+  def _relax_arc(self, curr_label: NodelLabel, next_node_local_id: int,
       energy_arc: float, time_arc: float
-  ) -> PCCMLabel:
+  ) -> NodelLabel:
     """Returns the label built by the extension of curr_label to the 
     node given by next_node_local_id."""
     max_q = self.instance.max_q
@@ -265,11 +266,11 @@ class PCCMAlgorithm(object):
         min_soc_at_next/self.max_slope)
     
     # return a new label for the relaxation to the new node
-    return PCCMLabel(next_node_local_id, key_time, trip_time, new_last_visited,
+    return NodelLabel(next_node_local_id, key_time, trip_time, new_last_visited,
       new_soc_at_last_cs, new_e_consumed_since_last_cs, curr_label.supporting_pts,
       curr_label.slope, time_arc, energy_arc, curr_label, y_intercept=curr_label.y_intercept)
   
-  def _build_label_list(self, curr_label: PCCMLabel) -> List[PCCMLabel]:
+  def _build_label_list(self, curr_label: NodelLabel) -> List[NodelLabel]:
     """Builds list of labels to extend from the curr_label. Specifically,
     creates one new label for each supporting point of the current SOC 
     function in order to explore the possibility of switching over to the
@@ -351,7 +352,7 @@ class PCCMAlgorithm(object):
           key_time = trip_time + self.min_travel_charge_time_after_node[curr_local_id] - soc_at_cs/self.max_slope
         
         # make new label
-        label_list.append(PCCMLabel(curr_local_id, key_time, trip_time, curr_local_id,
+        label_list.append(NodelLabel(curr_local_id, key_time, trip_time, curr_local_id,
           curr_label.soc_arr_to_last_cs, curr_label.energy_consumed_since_last_cs,
           supp_pts_new, slope_new, 0, 0, curr_label.parent)
         )
@@ -366,19 +367,19 @@ class PCCMAlgorithm(object):
     # if current node has unset label,insert this node in the heap with a new key
     if self.unset_labels[local_node_id]:
       new_key = self._get_key(self.unset_labels[local_node_id].peek())
-      self.heap_elements[local_node_id] = HeapE(local_node_id)
+      self.heap_elements[local_node_id] = HeapElement(local_node_id)
       self.heap.add_task(self.heap_elements[local_node_id], new_key)
       self.in_heap[local_node_id] = True
       self.key[local_node_id] = new_key
     return
   
-  def _is_dominated(self, label: PCCMLabel, min_node_local_id: int) -> bool:
+  def _is_dominated(self, label: NodelLabel, min_node_local_id: int) -> bool:
     for other in self.set_labels[min_node_local_id]:
       if other.dominates(label):
         return True
     return False
   
-  def _compute_supporting_points(self, label: PCCMLabel) -> PCCMLabel:
+  def _compute_supporting_points(self, label: NodelLabel) -> NodelLabel:
     """Provides a new label that is identical to the argument, but with
     the supporting points, slopes, and y-intercepts updated.
     """
@@ -478,11 +479,11 @@ class PCCMAlgorithm(object):
         y_int_now = [(label.y_intercept[k] - label.energy_last_arc - label.time_last_arc*label.slope[k]) for k in range(first_k,last_k-1)]
     
     # construction complete. return new label
-    return PCCMLabel(local_id, label.key_time, label.trip_time, label.last_visited_cs,
+    return NodelLabel(local_id, label.key_time, label.trip_time, label.last_visited_cs,
       label.soc_arr_to_last_cs, label.energy_consumed_since_last_cs, new_supp_pts,
       slope_now, 0, 0, label.parent, y_int_now)
 
-  def _build_first_label(self) -> PCCMLabel:
+  def _build_first_label(self) -> NodelLabel:
     """Constructs the initial label to kick off the labeling algorithm."""
     supp_pts = [[0],[self.init_soc]]
     energy_to_end = self.min_energy_consumed_after_node[self.node_local_id_dep]
@@ -490,10 +491,14 @@ class PCCMAlgorithm(object):
       key_time = self.min_travel_time_after_node[self.node_local_id_dep]
     else:
       key_time = self.min_travel_charge_time_after_node[self.node_local_id_dep]
-    return PCCMLabel(self.node_local_id_dep, key_time, 0, None, self.init_soc, 
+    return NodelLabel(self.node_local_id_dep, key_time, 0, None, self.init_soc, 
       0, supp_pts, None, 0, 0, None)
 
-  def get_optimized_route(self) -> List[Any]:
+  def get_optimized_route(self) -> List[Tuple]:
+    """Returns the optimal route found by the algorithm if one exists; None otherwise.
+    If returned, the optimal route is a list of 2-tuples whose first entry is the node
+    ID and second entry is the amount to charge at that node.
+    """
     if not self.set_labels[self.node_local_id_arr]:
       return None
     else:
@@ -505,17 +510,23 @@ class PCCMAlgorithm(object):
       charging_index = 0
       for node in nodes_path:
         if node.type == NodeType.CHARGING_STATION:
-          route.insert(0,(node.node_id, None, charge_amts[charging_index]))
+          route.insert(0,(node.node_id, charge_amts[charging_index]))
           charging_index += 1
         else:
-          route.insert(0,(node.node_id))
+          route.insert(0,(node.node_id, None))
       return route
 
   def get_objective_value(self) -> float:
+    """Returns the key time for the first set label at the destination node
+    if a label exists; infinity otherwise.
+    """
     if self.set_labels[self.node_local_id_arr]:
       return self.set_labels[self.node_local_id_arr][0].key_time
     else:
       return float('inf')
 
   def solution_found(self) -> bool:
+    """Returns True if the destination node has at least one set label;
+    False otherwise.
+    """
     return len(self.set_labels[self.node_local_id_arr]) > 0

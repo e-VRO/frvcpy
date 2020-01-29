@@ -1,13 +1,22 @@
-from frvcp_py.labelalgo.core import FRVCPInstance,Node
-from frvcp_py.labelalgo.algorithm import PCCMAlgorithm
+import argparse
+import sys
 from typing import List, Any, Tuple
 
-class Solver(object):
-  def __init__(self, instance_filename: str, route: List[int], init_soc: float):
-    self.instance = FRVCPInstance(instance_filename, init_soc)
-    self.route = route
+from frvcpy.core import FrvcpInstance,Node
+from frvcpy.algorithm import FrvcpAlgo
 
+class Solver(object):
+  def __init__(self, instance: str, route: List[int], init_soc: float):
+    self.instance = FrvcpInstance(instance)
+    self._init_soc = init_soc
+    self._route = route
+
+  # TODO add functions to update init_soc/route (would require re-pre-algo-processing whenever called)
+  
   def solve(self) -> Tuple[float, List[Any]]:
+    """Solve the FRVCP defined by the fixed route, intial SoC, and instance provided to the constructor."""
+    # TODO offer a verbose option that would, eg, print times/charges of arrivals/departs from each node in the sequence
+    
     max_detour_charge_time = self._compute_max_avail_time_detour_charge() # float
     
     # below lists (until nodes_gpr) are of length (num_nodes_in_G)
@@ -26,7 +35,7 @@ class Solver(object):
     
     node_local_id_dep = 0 #int
     
-    node_local_id_arr = len(self.route)-1 #int
+    node_local_id_arr = len(self._route)-1 #int
     
     # starting here, lists are of length len(num_nodes_in_GPrime)
     nodes_gpr = self._build_gpr_nodes()#list[Node]
@@ -45,9 +54,9 @@ class Solver(object):
     ) = self._compute_bounds(nodes_gpr) #list[list[float]]
 
     # initialize algorithm
-    label_algo = PCCMAlgorithm(
+    label_algo = FrvcpAlgo(
       self.instance,
-      self.instance.init_soc,
+      self._init_soc,
       nodes_gpr, 
       adjacencies,
       node_local_id_dep,
@@ -71,9 +80,9 @@ class Solver(object):
     of the time duration).
     """
     return self.instance.t_max - \
-      sum([self.instance.time_matrix[self.route[i]][self.route[i+1]]
-        for i in range(len(self.route)-1)]) - \
-      sum([self.instance.process_times[stop] for stop in self.route])
+      sum([self.instance.time_matrix[self._route[i]][self._route[i+1]]
+        for i in range(len(self._route)-1)]) - \
+      sum([self.instance.process_times[stop] for stop in self._route])
 
   def _compute_min_soc_at_departure(self) -> List[float]:
     """Minimum allowable energy with which we can depart each node."""
@@ -95,9 +104,9 @@ class Solver(object):
     [i] = can we go from stop i in the route to stop i+1 directly
     """
     return [
-      (max_soc_at_arrival[self.route[i]] - \
-        self.instance.energy_matrix[self.route[i]][self.route[i+1]] >= min_soc_at_departure[i+1]) \
-      for i in range(len(self.route)-1)]
+      (max_soc_at_arrival[self._route[i]] - \
+        self.instance.energy_matrix[self._route[i]][self._route[i+1]] >= min_soc_at_departure[i+1]) \
+      for i in range(len(self._route)-1)]
 
   def _compute_possible_cs_connections(self,
     min_soc_at_departure: List[float], 
@@ -110,10 +119,10 @@ class Solver(object):
     [i][k][0] = can we go from stop i in the route to the kth CS?
     [i][k][1] = can we go from the kth cs to the (i+1)th stop in the route?
     """
-    result = [[[None,None] for cs in range(self.instance.n_cs)] for i in range(len(self.route)-1)]
-    for i in range(len(self.route)-1):
-      init_loc = self.route[i]
-      next_loc = self.route[i+1]
+    result = [[[None,None] for cs in range(self.instance.n_cs)] for i in range(len(self._route)-1)]
+    for i in range(len(self._route)-1):
+      init_loc = self._route[i]
+      next_loc = self._route[i+1]
       for i_cs in range(self.instance.n_cs):
         cs_id = self.instance.cs_details[i_cs]['node_id']
         result[i][i_cs][0] = max_soc_at_arrival[init_loc] - \
@@ -130,10 +139,10 @@ class Solver(object):
     Shape: len(self.route)-1 x num_cs:
     [i][k] = can we visit the kth CS between stops i and i+1 in the route?
     """
-    result = [[False for i_cs in range(self.instance.n_cs)] for i in range(len(self.route)-1)]
-    for i in range(len(self.route)-1):
-      s1 = self.route[i]
-      s2 = self.route[i+1]
+    result = [[False for i_cs in range(self.instance.n_cs)] for i in range(len(self._route)-1)]
+    for i in range(len(self._route)-1):
+      s1 = self._route[i]
+      s2 = self._route[i+1]
       for i_cs in range(self.instance.n_cs):
         cs = self.instance.cs_details[i_cs]["node_id"]
         detour_time = self.instance.time_matrix[s1][cs] + \
@@ -158,10 +167,10 @@ class Solver(object):
     Shape is: len(self.route)-1 x numcss x numcss
     [i][j][k] = can we connect the jth CS to the kth CS between stops i and i+1 in the route?
     """
-    result = [[[False for k2 in range(self.instance.n_cs)] for k1 in range(self.instance.n_cs)] for i in range(len(self.route) -1)]
-    for i in range(len(self.route) -1):
-      curr_stop = self.route[i]
-      next_stop = self.route[i+1]
+    result = [[[False for k2 in range(self.instance.n_cs)] for k1 in range(self.instance.n_cs)] for i in range(len(self._route) -1)]
+    for i in range(len(self._route) -1):
+      curr_stop = self._route[i]
+      next_stop = self._route[i+1]
       for k1 in range(self.instance.n_cs):
         cs1 = self.instance.cs_details[k1]["node_id"]
         for k2 in range(self.instance.n_cs):
@@ -180,8 +189,8 @@ class Solver(object):
 
   def _build_gpr_nodes(self) -> List[Node]:
     """Build the list of nodes that define the graph G'."""
-    return ([self.instance.nodes_g[self.route[i]] for i in range(len(self.route))] +
-      ((self.instance.get_cs_nodes())*(len(self.route)-1)))
+    return ([self.instance.nodes_g[self._route[i]] for i in range(len(self._route))] +
+      ((self.instance.get_cs_nodes())*(len(self._route)-1)))
 
   def _compute_adjacencies(self, 
     nodes_gpr: List[Node],
@@ -193,24 +202,24 @@ class Solver(object):
     """Compute the adjacency list for the nodes in G prime."""
     adjs = [[] for _ in nodes_gpr]
     # add direct connections and one-off detours
-    for i in range(len(self.route)-1):
+    for i in range(len(self._route)-1):
       if possible_direct_connect[i]:
         adjs[i].append(i+1)
-      for j in range(len(self.route)+i*self.instance.n_cs, len(self.route)+(i+1)*self.instance.n_cs):
-        i_cs = (j - len(self.route)) % self.instance.n_cs
+      for j in range(len(self._route)+i*self.instance.n_cs, len(self._route)+(i+1)*self.instance.n_cs):
+        i_cs = (j - len(self._route)) % self.instance.n_cs
         if possible_cs_detour[i][i_cs]:
           if possible_cs_connect[i][i_cs][0]:
             adjs[i].append(j)
           if possible_cs_connect[i][i_cs][1]:
             adjs[j].append(i+1)
     # add intra-cs links
-    for i in range(len(self.route)-1):
-      b = len(self.route)+i*self.instance.n_cs
-      e = len(self.route)+(i+1)*self.instance.n_cs
+    for i in range(len(self._route)-1):
+      b = len(self._route)+i*self.instance.n_cs
+      e = len(self._route)+(i+1)*self.instance.n_cs
       for j1 in range(b,e):
-        i_cs1 = (j1 - len(self.route)) % self.instance.n_cs
+        i_cs1 = (j1 - len(self._route)) % self.instance.n_cs
         for j2 in range(b,e):
-          i_cs2 = (j2 - len(self.route)) % self.instance.n_cs
+          i_cs2 = (j2 - len(self._route)) % self.instance.n_cs
           if possible_cs_link[i][i_cs1][i_cs2]:
             adjs[j1].append(j2)
 
@@ -238,22 +247,22 @@ class Solver(object):
     energy = 0
     time = 0
     time_charge = 0
-    next_id = self.route[-1]
+    next_id = self._route[-1]
 
     # set entries for last stop in route
-    min_travel_time_after_node[len(self.route)-1] = time
-    min_energy_consumed_after_node[len(self.route)-1] = energy
-    min_travel_charge_time_after_node[len(self.route)-1] = time_charge
+    min_travel_time_after_node[len(self._route)-1] = time
+    min_energy_consumed_after_node[len(self._route)-1] = energy
+    min_travel_charge_time_after_node[len(self._route)-1] = time_charge
 
     # set entries for all others
-    for i in range(len(self.route)-2,-1,-1):
-      for j in range(len(self.route)+i*self.instance.n_cs,len(self.route)+(i+1)*self.instance.n_cs):
+    for i in range(len(self._route)-2,-1,-1):
+      for j in range(len(self._route)+i*self.instance.n_cs,len(self._route)+(i+1)*self.instance.n_cs):
         curr_id = nodes[j].node_id
         min_travel_time_after_node[j] = time + self.instance.time_matrix[curr_id][next_id] + self.instance.process_times[next_id]
         min_energy_consumed_after_node[j] = energy + self.instance.energy_matrix[curr_id][next_id]
         min_travel_charge_time_after_node[j] = time_charge + (self.instance.time_matrix[curr_id][next_id] +
           self.instance.process_times[next_id] + self.instance.energy_matrix[curr_id][next_id] / self.instance.max_slope)
-      curr_id = self.route[i]
+      curr_id = self._route[i]
       time += self.instance.time_matrix[curr_id][next_id] + self.instance.process_times[next_id]
       energy += self.instance.energy_matrix[curr_id][next_id]
       time_charge += (self.instance.time_matrix[curr_id][next_id] + self.instance.process_times[next_id] +
@@ -284,3 +293,46 @@ class Solver(object):
       min_energy_at_departure,
       max_energy_at_departure
     )
+
+def main():
+  """Solving an FRVCP."""
+
+  parser = argparse.ArgumentParser(description="Solves an FRVCP")
+  optional = parser._action_groups.pop() # grab the optional arguments to re-append after the required named arguments
+  required = parser.add_argument_group('required arguments')
+  
+  required.add_argument(
+    '-i',
+    '--instance',
+    type=str,
+    required=True,
+    help='Filename for the frvcpy-compatible problem instance')
+  required.add_argument(
+    '-r',
+    '--route',
+    type=str,
+    required=True,
+    help='Comma-separated list of node IDs defining the route to be made energy-feasible')
+  # TODO allow route to also be a file that contains the comma-separated list
+  required.add_argument(
+    '-q',
+    '--qinit',
+    type=float,
+    required=True,
+    help='The initial energy of the EV traveling the route')
+
+  parser._action_groups.append(optional) # re-append the optional arguments
+
+  args = parser.parse_args()
+
+  print(f"Preparing to solve FRVCP.\nInstance file: {args.instance}\nRoute: {args.route}\nInitial SoC: {args.qinit}\n")
+  solver = Solver(args.instance, [int(stop) for stop in args.route.split(',')], args.qinit)
+  duration, feas_route = solver.solve()
+  print("FRVCP solved.")
+  print(f"Duration: {duration:.4}")
+  print(f"Energy-feasible route:\n{feas_route}")
+
+  sys.exit(0)
+
+if __name__ == "__main__":
+    main()
