@@ -1,4 +1,6 @@
+from queue import PriorityQueue
 from typing import List,Any,Tuple
+
 from frvcpy.core import Node,NodeType,FrvcpInstance,PseudoFibonacciHeap,HeapElement,NodelLabel
 
 class FrvcpAlgo(object):
@@ -51,7 +53,6 @@ class FrvcpAlgo(object):
     # key associated with each node (using local ID) (array of doubles)
     self.key = [None for _ in self.nodes_gpr]
 
-    from queue import PriorityQueue
     # priority queues of unset labels for each node
     # ("for CS only labels at departure" -- meaning it represents keytime when departing the CS?)
     self.unset_labels = [PseudoFibonacciHeap() for _ in self.nodes_gpr]

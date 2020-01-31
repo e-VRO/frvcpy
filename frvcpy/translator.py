@@ -1,8 +1,9 @@
-import xmltodict
+import argparse
 import json
 import math
 import sys
-import argparse
+
+import xmltodict
 
 # TODO accommodate other CS types
 # (read in the types from the instance, number them according to speed, then use that instead of this custom key)

@@ -1,5 +1,8 @@
-from typing import List, Any, Tuple
 from enum import Enum
+import heapq
+import itertools
+import json
+from typing import List, Any, Tuple
 
 class NodeType(Enum):
   DEPOT = 0,
@@ -24,7 +27,6 @@ class HeapElement(object):
   def __init__(self, data: Any):
     self.data = data
 
-import heapq
 class PseudoFibonacciHeap():
   """Defines a priority queue whose keys can be updated.
   This mimics the Fibonacci heap object used in the original labeling
@@ -36,7 +38,6 @@ class PseudoFibonacciHeap():
     self._pq = []                         # list of entries arranged in a heap
     self._entry_finder = {}               # mapping of tasks to entries
     self._REMOVED = '<removed-task>'      # placeholder for a removed task
-    import itertools
     self._counter = itertools.count()     # unique sequence count
 
   def __bool__(self):
@@ -287,7 +288,6 @@ class NodelLabel(object):
 
   # endregion
 
-import json
 class FrvcpInstance(object):
   def __init__(self, instance):
     """Instantiate a frvcpy-compliant problem instance.
