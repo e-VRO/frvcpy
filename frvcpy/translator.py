@@ -5,15 +5,6 @@ import sys
 
 import xmltodict
 
-# TODO accommodate other CS types
-# (read in the types from the instance, number them according to speed, then use that instead of this custom key)
-CS_INT = {
-  'fast':0,
-  'moderate':1,
-  'normal':1,
-  'slow':2
-}
-
 # define energy and time functions
 def _dist(i_node,j_node) -> float:
   return math.sqrt((float(i_node['cx']) - float(j_node['cx']))**2 + (float(i_node['cy']) - float(j_node['cy']))**2)
@@ -24,15 +15,24 @@ def _t(i_node, j_node, speed) -> float:
 def _e(i_node,j_node,consump_rate) -> float:
   return _dist(i_node,j_node)*consump_rate
 
-def _get_fastest_cs_type(cfs):
-  """Given a list of charging functions, returns the type of the fastest charging station in the instance."""
-  # if there's only one type of CS, then that's what it is
-  if not isinstance(cfs,(list,)):
-    return cfs['@cs_type']
-
-  # otherwise, get the fastest of the types that are present in the instance
-  else:
-    return min(CS_INT, key=(lambda k: float('inf') if (k not in [cf['@cs_type'] for cf in cfs]) else CS_INT[k]))
+def _get_type_to_speed(cfs):
+  """Given a list of charging functions, returns an object whose keys are the CS types and values are speed rank."""
+  
+  # compute max charge rates by type
+  result = [{
+    'cs_type': cf['@cs_type'], 
+    'max_rate': (
+      (float(cf['breakpoint'][1]['battery_level'])-float(cf['breakpoint'][0]['battery_level']))/
+      (float(cf['breakpoint'][1]['charging_time'])-float(cf['breakpoint'][0]['charging_time']))
+    )} for cf in cfs]
+  
+  # assign each type its speed rank (lowest = fastest --> highest = slowest)
+  result = sorted(result,key=lambda x:x['max_rate'],reverse=True)
+  for i,e in enumerate(result):
+    e.update({'speed_rank':i})
+  
+  # return dict type:speed_rank
+  return {cf['cs_type']:cf['speed_rank'] for cf in result}
 
 def _get_precision_type(network_el):
   """Given a network element from a VRP-REP instance, returns its precision type:
@@ -122,18 +122,25 @@ def translate(from_filename, to_filename=None):
   consump_rate = float(ev['custom']['consumption_rate'])
   max_q = float(ev['custom']['battery_capacity'])
   cfs = ev['custom']['charging_functions']['function']
+  if not isinstance(cfs,(list,)): # promote individual CFs to a list
+    cfs = [cfs]
+  type_to_speed = _get_type_to_speed(cfs)
   # Optional max route duration
   max_t = float(ev['max_travel_time']) if ('max_travel_time' in ev) else None
 
   # append depot's CS to nodes
-  fastest = _get_fastest_cs_type(cfs)
+  fastest = [t for t,r in type_to_speed.items() if r==0][0]
   nodes.append({'@id':str(len(nodes)),'cx':nodes[0]['cx'],'cy':nodes[0]['cy'],'@type':'2','custom':{'cs_type':fastest}})
   print(f"INFO: Depot assumed to be a CS with the instance's fastest charging type (fastest found was \'{fastest}\').")
 
   # CSs
   css = [node for node in nodes if node['@type'] == '2']
-  # TODO instruct user that CSs are assumed to be nodes of type 2 
 
+  # Warn if other node types found
+  unrec_nodetypes = set([node['@type'] for node in nodes if node['@type'] not in ['0','1','2']]
+  if len(unrec_nodetypes):
+    print(f"WARNING: Unrecognized node types found: {unrec_nodetypes}")
+  
   # request info
   print(f"INFO: Only nodes' service_time is preserved from requests. All other info ignored.")
   process_times = [0 for _ in nodes]
@@ -153,26 +160,17 @@ def translate(from_filename, to_filename=None):
   if max_t is not None:
     instance["t_max"] = max_t
   # store CSs
-  instance["css"] = [{'node_id':int(cs['@id']), 'cs_type':CS_INT[cs['custom']['cs_type']]} for cs in css]
+  instance["css"] = [{'node_id':int(cs['@id']), 'cs_type':type_to_speed[cs['custom']['cs_type']]} for cs in css]
   # process times are zero
   instance["process_times"] = process_times
   # breakpoints
-  if isinstance(cfs,(list,)): # if we have a list of charging functions
-    instance["breakpoints_by_type"] = [
-      {
-        "cs_type":CS_INT[cfs[k]['@cs_type']],
-        "time":[float(bpt['charging_time']) for bpt in cfs[k]['breakpoint']],
-        "charge":[float(bpt['battery_level']) for bpt in cfs[k]['breakpoint']]
-      } for k in range(len(cfs))
-    ]
-  else: # if we just have one
-    instance["breakpoints_by_type"] = [
-      {
-        "cs_type":CS_INT[cfs['@cs_type']],
-        "time":[float(bpt['charging_time']) for bpt in cfs['breakpoint']],
-        "charge":[float(bpt['battery_level']) for bpt in cfs['breakpoint']]
-      }
-    ]
+  instance["breakpoints_by_type"] = [
+    {
+      "cs_type":type_to_speed[cfs[k]['@cs_type']],
+      "time":[float(bpt['charging_time']) for bpt in cfs[k]['breakpoint']],
+      "charge":[float(bpt['battery_level']) for bpt in cfs[k]['breakpoint']]
+    } for k in range(len(cfs))
+  ]
   # energy and time matrices
   instance["energy_matrix"] = [[_e(i,j,consump_rate) for j in nodes] for i in nodes]
   instance["time_matrix"] = [[_t(i,j,speed) for j in nodes] for i in nodes]
