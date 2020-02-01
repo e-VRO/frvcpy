@@ -153,24 +153,26 @@ def translate(from_filename, to_filename=None):
   if max_t is not None:
     instance["t_max"] = max_t
   # store CSs
-  instance["css"] = [{'node_id':int(cs['@id']), 'type':CS_INT[cs['custom']['cs_type']]} for cs in css]
+  instance["css"] = [{'node_id':int(cs['@id']), 'cs_type':CS_INT[cs['custom']['cs_type']]} for cs in css]
   # process times are zero
   instance["process_times"] = process_times
   # breakpoints
   if isinstance(cfs,(list,)): # if we have a list of charging functions
-    instance["breakpoints_by_type"] = {
-      str(CS_INT[cfs[k]['@cs_type']]):{
+    instance["breakpoints_by_type"] = [
+      {
+        "cs_type":CS_INT[cfs[k]['@cs_type']],
         "time":[float(bpt['charging_time']) for bpt in cfs[k]['breakpoint']],
         "charge":[float(bpt['battery_level']) for bpt in cfs[k]['breakpoint']]
       } for k in range(len(cfs))
-    }
+    ]
   else: # if we just have one
-    instance["breakpoints_by_type"] = {
-      str(CS_INT[cfs['@cs_type']]):{
+    instance["breakpoints_by_type"] = [
+      {
+        "cs_type":CS_INT[cfs['@cs_type']],
         "time":[float(bpt['charging_time']) for bpt in cfs['breakpoint']],
         "charge":[float(bpt['battery_level']) for bpt in cfs['breakpoint']]
       }
-    }
+    ]
   # energy and time matrices
   instance["energy_matrix"] = [[_e(i,j,consump_rate) for j in nodes] for i in nodes]
   instance["time_matrix"] = [[_t(i,j,speed) for j in nodes] for i in nodes]

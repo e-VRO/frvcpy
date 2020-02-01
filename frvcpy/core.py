@@ -314,7 +314,7 @@ class FrvcpInstance(object):
     self.t_max = instance["t_max"] if "t_max" in instance else 6e9 # come onnnn, 6 billion!
     # keys are cs types, values are dicts that map "time" or "charge" to corresponding arrays of floats
     self.cs_bkpt_info = instance["breakpoints_by_type"]
-    self.cs_bkpt_info = {int(k):v for k,v in self.cs_bkpt_info.items()}
+    self.cs_bkpt_info = {v['cs_type']:v for v in self.cs_bkpt_info} # use the cs type as the key
     # list of objs with attrs 'node_id' and 'type'
     self.cs_details = instance["css"]
     # number of charging stations
@@ -365,7 +365,7 @@ class FrvcpInstance(object):
       for cs_type,arr in self.type_to_supp_pts.items()}
   
   def _make_cs_id_to_type_map(self):
-    return {cs["node_id"]:cs["type"] for cs in self.cs_details}
+    return {cs["node_id"]:cs["cs_type"] for cs in self.cs_details}
   
   def _compute_max_slope(self):
     return max([slopes[0] for slopes in self.type_to_slopes.values()])
