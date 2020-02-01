@@ -11,7 +11,7 @@ class Solver(object):
     self._init_soc = init_soc
     self._route = route
 
-  # TODO add functions to update init_soc/route (would require re-pre-algo-processing whenever called)
+  # TODO add functions to update init_soc/route (would require re-pre-processing whenever called)
   
   def solve(self) -> Tuple[float, List[Any]]:
     """Solve the FRVCP defined by the fixed route, intial SoC, and instance provided to the constructor."""
@@ -313,7 +313,7 @@ def main():
     type=str,
     required=True,
     help='Comma-separated list of node IDs defining the route to be made energy-feasible')
-  # TODO allow route to also be a file that contains the comma-separated list
+  # TODO for large instances/routes, allow route to also be a file that contains the comma-separated list
   required.add_argument(
     '-q',
     '--qinit',
