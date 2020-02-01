@@ -1,0 +1,102 @@
+{
+    "$schema": "http://json-schema.org/schema#",
+    "title": "FRVCP Instance",
+    "description": "Instance suitable for use with frvcpy",
+    "type": "object",
+    "properties": {
+        "max_q": {
+            "description": "The vehicle's battery capacity",
+            "type": "number"
+        },
+        "t_max": {
+            "description": "Maximum duration (time) of the vehicle's route",
+            "type": "number"
+        },
+        "css": {
+            "description": "Charging station information: node IDs and types (speed or technology)",
+            "type": "array",
+            "items": {
+                "$ref": "#/definitions/cs_info"
+            }
+        },
+        "process_times": {
+            "description": "Time required for the vehicle to process (stay at) each node",
+            "type": "array",
+            "items": {
+                "type": "number"
+            }
+        },
+        "time_matrix": {
+            "description": "Time required for the vehicle to travel between nodes",
+            "type": "array",
+            "items": {
+                "type": "array",
+                "items": {
+                    "type": "number"
+                }
+            }
+        },
+        "energy_matrix": {
+            "description": "Energy required for the vehicle to travel between nodes",
+            "type": "array",
+            "items": {
+                "type": "array",
+                "items": {
+                    "type": "number"
+                }
+            }
+        },
+        "breakpoints_by_type": {
+            "description": "Breakpoints defining the charging function for each CS type present in the \"css\" array",
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "cs_type": {
+                        "type": "integer"
+                    },
+                    "time": {
+                        "description": "Array of breakpoints' time coordinates",
+                        "type": "array",
+                        "items": {
+                            "type": "number"
+                        }
+                    },
+                    "charge": {
+                        "description": "Array of breakpoints' charge coordinates",
+                        "type": "array",
+                        "items": {
+                            "type": "number"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "required": [
+        "max_q",
+        "css",
+        "breakpoints_by_type",
+        "energy_matrix",
+        "time_matrix"
+    ],
+    "definitions": {
+        "cs_info": {
+            "title": "CS Node Info",
+            "description": "Node ID and type (speed/technology) of the CS node",
+            "type": "object",
+            "properties": {
+                "node_id": {
+                    "type": "integer"
+                },
+                "cs_type": {
+                    "type": "integer"
+                }
+            },
+            "required": [
+                "node_id",
+                "cs_type"
+            ]
+        }
+    }
+}
