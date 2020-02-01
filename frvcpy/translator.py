@@ -137,8 +137,8 @@ def translate(from_filename, to_filename=None):
   css = [node for node in nodes if node['@type'] == '2']
 
   # Warn if other node types found
-  unrec_nodetypes = set([node['@type'] for node in nodes if node['@type'] not in ['0','1','2']]
-  if len(unrec_nodetypes):
+  unrec_nodetypes = set([node['@type'] for node in nodes if node['@type'] not in ['0','1','2']])
+  if unrec_nodetypes:
     print(f"WARNING: Unrecognized node types found: {unrec_nodetypes}")
   
   # request info
