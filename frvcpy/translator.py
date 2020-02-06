@@ -6,14 +6,18 @@ import sys
 import xmltodict
 
 # define energy and time functions
-def _dist(i_node,j_node) -> float:
-  return math.sqrt((float(i_node['cx']) - float(j_node['cx']))**2 + (float(i_node['cy']) - float(j_node['cy']))**2)
+def _dist(i_node, j_node, dist_type) -> float:
+  
+  if dist_type=='manhattan':
+    return abs(float(i_node['cx']) - float(j_node['cx'])) + abs(float(i_node['cy']) - float(j_node['cy']))
+  else: # euclidean
+    return math.sqrt((float(i_node['cx']) - float(j_node['cx']))**2 + (float(i_node['cy']) - float(j_node['cy']))**2)
 
-def _t(i_node, j_node, speed) -> float:
-  return _dist(i_node,j_node)/speed
+def _t(i_node, j_node, speed, dist_type) -> float:
+  return _dist(i_node, j_node, dist_type)/speed
 
-def _e(i_node,j_node,consump_rate) -> float:
-  return _dist(i_node,j_node)*consump_rate
+def _e(i_node,j_node,consump_rate, dist_type) -> float:
+  return _dist(i_node, j_node, dist_type)*consump_rate
 
 def _get_type_to_speed(cfs):
   """Given a list of charging functions, returns an object whose keys are the CS types and values are speed rank."""
@@ -118,9 +122,16 @@ def translate(from_filename, to_filename=None, v_type=None, depot_charging=True)
   # Warn user about ignored instance sections
   _warn_unused_els(instance_xml)
   
-  if 'euclidean' not in network:
-    print("WARNING: Using Euclidean distance calculations. To use non-Euclidean distances, please manually translate the instance.")
-    # TODO add support for Manhattan distances
+  dist_type = None
+  if 'euclidean' in network:
+    dist_type = 'euclidean'
+  elif 'manhattan' in network:
+    dist_type = 'manhattan'
+
+  if dist_type is None:
+    print("""WARNING: An unrecognized (or no) distance type was listed in the instance. Assuming Euclidean distance calculations. 
+    ('euclidean' and 'manhattan' are supported; for all others, manual instance translation necessary.""")
+    dist_type = 'euclidean'
   
   precision_type = _get_precision_type(network)
   if precision_type is not None:
@@ -185,8 +196,8 @@ def translate(from_filename, to_filename=None, v_type=None, depot_charging=True)
     } for k in range(len(cfs))
   ]
   # energy and time matrices
-  instance["energy_matrix"] = [[_e(i,j,consump_rate) for j in nodes] for i in nodes]
-  instance["time_matrix"] = [[_t(i,j,speed) for j in nodes] for i in nodes]
+  instance["energy_matrix"] = [[_e(i,j,consump_rate,dist_type) for j in nodes] for i in nodes]
+  instance["time_matrix"] = [[_t(i,j,speed,dist_type) for j in nodes] for i in nodes]
 
   if to_filename is not None:
     with open(to_filename, 'w') as fp:
