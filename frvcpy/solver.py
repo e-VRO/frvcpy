@@ -233,7 +233,7 @@ class Solver(object):
           and consume any additional required energy without detouring at the fastest rate possible
      4. latest_departure_time: latest time at which the vehicle can depart
      5. min_energy_at_departure: min allowable energy at departure
-     6. max_energy_at_departure: max allowable energy at departure
+     6. max_energy_at_departure: max energy at departure (either Q or min needed to reach end of route)
     """
     min_travel_time_after_node = [None for _ in range(len(nodes))]
     min_energy_consumed_after_node = [None for _ in range(len(nodes))]
@@ -282,7 +282,7 @@ class Solver(object):
       if min_energy_to_charge > 0:
         latest_departure_time[i] -= min_energy_to_charge/self.instance.max_slope
       min_energy_at_departure[i] = self.instance.get_min_energy_to_cs(curr_id)
-      max_energy_at_departure[i] = self.instance.max_q
+      max_energy_at_departure[i] = min(self.instance.max_q,min_energy_consumed_after_node[i])
       # endregion
     
     return (
@@ -325,10 +325,8 @@ def main():
 
   args = parser.parse_args()
 
-  print(f"Preparing to solve FRVCP.\nInstance file: {args.instance}\nRoute: {args.route}\nInitial SoC: {args.qinit}\n")
   solver = Solver(args.instance, [int(stop) for stop in args.route.split(',')], args.qinit)
   duration, feas_route = solver.solve()
-  print("FRVCP solved.")
   print(f"Duration: {duration:.4}")
   print(f"Energy-feasible route:\n{feas_route}")
 
