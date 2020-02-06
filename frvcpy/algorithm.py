@@ -321,16 +321,17 @@ class FrvcpAlgo(object):
           continue
 
         # passed all checks. Will switch to new CS
-        # Compute first break pt of charging function above current pt
+        # Compute first break pt of charging function above the SOC with which we arrived 
         first_k = 0
-        soc_floor = max(0,soc_at_cs)
-        while first_k < cs_n_pts and cs_supp_pts[1][first_k] <= soc_floor:
+        assert soc_at_cs>=0, "Arrived to CS with negative SOC"
+        while first_k < cs_n_pts and cs_supp_pts[1][first_k] <= soc_at_cs:
           first_k += 1
 
         e_to_end = self.min_energy_consumed_after_node[curr_local_id]
-        n_pts_new = cs_n_pts - first_k + 1
+        n_pts_new = cs_n_pts - first_k + 1 # the ones from first_k to the end, plus the arrival point
         supp_pts_new = [[None for k in range(n_pts_new)] for _ in range(2)]
-        slope_new = None
+        # if there is more than one supp pt, compute slopes of segments, otherwise, it's None
+        slope_new = [cs_slope[l-1] for l in range(first_k,cs_n_pts)] if n_pts_new > 1 else None
         supp_pts_new[0][0] = trip_time
         supp_pts_new[1][0] = soc_at_cs
 
@@ -340,12 +341,6 @@ class FrvcpAlgo(object):
           supp_pts_new[0][l-first_k+1] = trip_time+cs_supp_pts[0][l]-shift_time
           supp_pts_new[1][l-first_k+1] = cs_supp_pts[1][l]
 
-        # if there is more than one supp pt, compute slopes of segments
-        if n_pts_new > 1:
-          slope_new = [None for _ in range(n_pts_new-1)]
-          for l in range(first_k,cs_n_pts):
-            slope_new[l-first_k] = cs_slope[l-1]
-        
         # compute key
         if soc_at_cs > e_to_end:
           key_time = trip_time + self.min_travel_time_after_node[curr_local_id]
