@@ -52,7 +52,7 @@ frvcpy --instance=./instances/frvcpy-instance.json --route=0,3,2,1,0 --qinit=750
 <a name="translation"></a>
 ## Instance Translation
 We offer a translator for some E-VRP instance files formatted according to the [VRP-REP](http://www.vrp-rep.org/) [specification](http://www.vrp-rep.org/schemas/download/vrp-rep-instance-specification-0.5.0.xsd). 
-If you have such an instance file, it can be translated via 
+If you have such an instance file, it can be translated with the Python API via 
 ```python
 from frvcpy.translator import translate
 
@@ -62,7 +62,7 @@ frvcp_instance = translate("instances/vrprep-instance.xml")
 # Option 2) write instance to file, use as shown in "Usage" section
 frvcp_instance = translate("instances/vrprep-instance.xml", to_file="instances/my-instance.json")
 ```
-Or 
+Or via the command line via
 ```bash
 frvcpy-translate instances/vrprep-instance.xml instances/my-instance.json
 ```
@@ -152,7 +152,7 @@ Use of the solver requires three things:
     - Ordered list of depot/customer nodes the EV must visit
  
  3. EV's initial charge
-    - A number in [0,`max_q`], as defined in the instance
+    - A number in [0, `max_q`], as defined in the instance
 
 <a name="moreinfo"></a>
 ## Additional information
