@@ -70,7 +70,7 @@ class Solver(object):
       min_energy_at_departure)
 
     # run algorithm    
-    label_algo.run_multiobj_shortest_path_algo(True,True)
+    label_algo.run_algo()
     
     # return results
     return (label_algo.get_objective_value(),label_algo.get_optimized_route())

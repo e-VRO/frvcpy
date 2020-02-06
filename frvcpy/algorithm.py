@@ -45,7 +45,7 @@ class FrvcpAlgo(object):
     return (label.key_time, \
       float('inf') if label.supporting_pts[1][0] == 0 else 1/label.supporting_pts[1][0])
   
-  def run_multiobj_shortest_path_algo(self, dominance, stop_at_first):
+  def run_algo(self):
     
     # is there an unset label associated with each node (using ID) in the updatable priority queue
     self.in_heap = [False for _ in self.nodes_gpr]
@@ -91,7 +91,7 @@ class FrvcpAlgo(object):
       # compute supporting points of label
       label_to_set = self._compute_supporting_points(label_to_set)
       # check if label dominated by previously set label
-      if dominance and self._is_dominated(label_to_set, min_node_local_id):
+      if self._is_dominated(label_to_set, min_node_local_id):
         self._insert_new_node_in_heap(min_node_local_id)
         continue
       
@@ -111,13 +111,7 @@ class FrvcpAlgo(object):
       # if current node is the destination node
       if min_node_local_id == self.node_local_id_arr:
         self.set_labels[min_node_local_id].append(label_to_set)
-        if stop_at_first:
-          # we're done
-          break
-        else:
-          self._insert_new_node_in_heap(min_node_local_id)
-          # don't extend label if desintation reached
-          continue
+        break
       
       # mark current label as set
       self.set_labels[min_node_local_id].append(label_to_set)
