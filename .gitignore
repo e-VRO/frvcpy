@@ -29,3 +29,10 @@ wheels/
 
 # vscode
 .vscode/
+
+# E-VRP-NL test instances
+instances/evrpnl/*
+!instances/evrpnl/README.md
+
+# Tests not intended for deployment
+nondevtests/
