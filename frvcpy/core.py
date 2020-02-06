@@ -78,7 +78,7 @@ class PseudoFibonacciHeap():
         i += 1
     return None
 
-class NodelLabel(object):
+class NodeLabel(object):
   """Class defining a label for the labeling algorithm of
   Froger (2018) for the fixed-route vehicle charging problem.
   """
@@ -374,8 +374,9 @@ class FrvcpInstance(object):
     return (self.type_to_slopes[self.cs_id_to_type[node1.node_id]][0] > 
       self.type_to_slopes[self.cs_id_to_type[node2.node_id]][0])
   
-  def get_supporting_points(self, node: Node) -> List[List[float]]:
-    return self.type_to_supp_pts[self.cs_id_to_type[node.node_id]]
+  def get_cf_breakpoints(self, cs_node: Node) -> List[List[float]]:
+    """Get the breakpoints in the charging function of `node`'s CS type"""
+    return self.type_to_supp_pts[self.cs_id_to_type[cs_node.node_id]]
 
   def _get_cf_segment_idx(self, cs_type, value, axis) -> int:
     """Axis is 1 for charge and 0 for time."""

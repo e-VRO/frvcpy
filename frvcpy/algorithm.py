@@ -1,7 +1,7 @@
 from queue import PriorityQueue
 from typing import List,Any,Tuple
 
-from frvcpy.core import Node,NodeType,FrvcpInstance,PseudoFibonacciHeap,HeapElement,NodelLabel
+from frvcpy.core import Node,NodeType,FrvcpInstance,PseudoFibonacciHeap,HeapElement,NodeLabel
 
 class FrvcpAlgo(object):
   """The Froger, et al. (2018) labeling algorithm to solve the FRVCP."""
@@ -40,7 +40,7 @@ class FrvcpAlgo(object):
     # lower bound on the SOC the EV can have as it departs each node (using local ID)
     self.min_energy_at_departure = min_energy_at_departure
 
-  def _get_key(self, label: NodelLabel):
+  def _get_key(self, label: NodeLabel):
     """Provides the key associated with a label."""
     return (label.key_time, \
       float('inf') if label.supporting_pts[1][0] == 0 else 1/label.supporting_pts[1][0])
@@ -158,7 +158,7 @@ class FrvcpAlgo(object):
       self._insert_new_node_in_heap(min_node_local_id)
     return
 
-  def _can_be_extended_to(self, curr_label: NodelLabel, next_node_local_id: int) -> bool:
+  def _can_be_extended_to(self, curr_label: NodeLabel, next_node_local_id: int) -> bool:
     next_node = self.nodes_gpr[next_node_local_id]
     
     # Check is for charging stations only
@@ -196,9 +196,9 @@ class FrvcpAlgo(object):
 
     return True
   
-  def _relax_arc(self, curr_label: NodelLabel, next_node_local_id: int,
+  def _relax_arc(self, curr_label: NodeLabel, next_node_local_id: int,
       energy_arc: float, time_arc: float
-  ) -> NodelLabel:
+  ) -> NodeLabel:
     """Returns the label built by the extension of curr_label to the 
     node given by next_node_local_id."""
     max_q = self.instance.max_q
@@ -267,11 +267,11 @@ class FrvcpAlgo(object):
         min_soc_at_next/self.max_slope)
     
     # return a new label for the relaxation to the new node
-    return NodelLabel(next_node_local_id, key_time, trip_time, new_last_visited,
+    return NodeLabel(next_node_local_id, key_time, trip_time, new_last_visited,
       new_soc_at_last_cs, new_e_consumed_since_last_cs, curr_label.supporting_pts,
       curr_label.slope, time_arc, energy_arc, curr_label, y_intercept=curr_label.y_intercept)
   
-  def _build_label_list(self, curr_label: NodelLabel) -> List[NodelLabel]:
+  def _build_label_list(self, curr_label: NodeLabel) -> List[NodeLabel]:
     """Builds list of labels to extend from the curr_label. Specifically,
     creates one new label for each supporting point of the current SOC 
     function in order to explore the possibility of switching over to the
@@ -285,9 +285,9 @@ class FrvcpAlgo(object):
     if curr_node.type == NodeType.CHARGING_STATION:
       
       # charging function details
-      cs_supp_pts = self.instance.get_supporting_points(curr_node)
-      cs_slope = self.instance.get_slope(curr_node)
-      cs_n_pts = len(cs_supp_pts[0])
+      cs_supp_pts = self.instance.get_cf_breakpoints(curr_node) # CS's charging func breakpoints
+      cs_slope = self.instance.get_slope(curr_node) # slopes of the CS's charging func segments
+      cs_n_pts = len(cs_supp_pts[0]) # num breakpoints (n bpts -> (n-1) segments)
 
       # current SOC function
       lbl_supp_pts = curr_label.supporting_pts
@@ -340,7 +340,7 @@ class FrvcpAlgo(object):
         for l in range(first_k,cs_n_pts):
           supp_pts_new[0][l-first_k+1] = trip_time+cs_supp_pts[0][l]-shift_time
           supp_pts_new[1][l-first_k+1] = cs_supp_pts[1][l]
-
+        
         # compute key
         if soc_at_cs > e_to_end:
           key_time = trip_time + self.min_travel_time_after_node[curr_local_id]
@@ -348,7 +348,7 @@ class FrvcpAlgo(object):
           key_time = trip_time + self.min_travel_charge_time_after_node[curr_local_id] - soc_at_cs/self.max_slope
         
         # make new label
-        label_list.append(NodelLabel(curr_local_id, key_time, trip_time, curr_local_id,
+        label_list.append(NodeLabel(curr_local_id, key_time, trip_time, curr_local_id,
           curr_label.soc_arr_to_last_cs, curr_label.energy_consumed_since_last_cs,
           supp_pts_new, slope_new, 0, 0, curr_label.parent)
         )
@@ -369,13 +369,13 @@ class FrvcpAlgo(object):
       self.key[local_node_id] = new_key
     return
   
-  def _is_dominated(self, label: NodelLabel, min_node_local_id: int) -> bool:
+  def _is_dominated(self, label: NodeLabel, min_node_local_id: int) -> bool:
     for other in self.set_labels[min_node_local_id]:
       if other.dominates(label):
         return True
     return False
   
-  def _compute_supporting_points(self, label: NodelLabel) -> NodelLabel:
+  def _compute_supporting_points(self, label: NodeLabel) -> NodeLabel:
     """Provides a new label that is identical to the argument, but with
     the supporting points, slopes, and y-intercepts updated.
     """
@@ -475,11 +475,11 @@ class FrvcpAlgo(object):
         y_int_now = [(label.y_intercept[k] - label.energy_last_arc - label.time_last_arc*label.slope[k]) for k in range(first_k,last_k-1)]
     
     # construction complete. return new label
-    return NodelLabel(local_id, label.key_time, label.trip_time, label.last_visited_cs,
+    return NodeLabel(local_id, label.key_time, label.trip_time, label.last_visited_cs,
       label.soc_arr_to_last_cs, label.energy_consumed_since_last_cs, new_supp_pts,
       slope_now, 0, 0, label.parent, y_int_now)
 
-  def _build_first_label(self) -> NodelLabel:
+  def _build_first_label(self) -> NodeLabel:
     """Constructs the initial label to kick off the labeling algorithm."""
     supp_pts = [[0],[self.init_soc]]
     energy_to_end = self.min_energy_consumed_after_node[self.node_local_id_dep]
@@ -487,7 +487,7 @@ class FrvcpAlgo(object):
       key_time = self.min_travel_time_after_node[self.node_local_id_dep]
     else:
       key_time = self.min_travel_charge_time_after_node[self.node_local_id_dep]
-    return NodelLabel(self.node_local_id_dep, key_time, 0, None, self.init_soc, 
+    return NodeLabel(self.node_local_id_dep, key_time, 0, None, self.init_soc, 
       0, supp_pts, None, 0, 0, None)
 
   def get_optimized_route(self) -> List[Tuple]:
