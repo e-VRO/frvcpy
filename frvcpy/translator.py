@@ -228,7 +228,7 @@ def main():
   args = parser.parse_args()
 
   print(f"Preparing to translate instance {args.from_file}...")
-  translate(from_filename=args.from_file, to_filename=args.to_file, v_type=args.vehicle, depot_charging=args.depot_cs)
+  translate(from_filename=args.from_file, to_filename=args.to_file, v_type=args.vtype, depot_charging=args.depot_cs)
   print(f"Translated instance file written to {args.to_file}")
 
   sys.exit(0)
