@@ -6,10 +6,11 @@ from frvcpy.core import FrvcpInstance,Node
 from frvcpy.algorithm import FrvcpAlgo
 
 class Solver(object):
-  def __init__(self, instance: str, route: List[int], init_soc: float):
+  def __init__(self, instance, route: List[int], init_soc: float, multi_insert=True):
     self.instance = FrvcpInstance(instance)
     self._init_soc = init_soc
     self._route = route
+    self._multi_insert = multi_insert
 
   # TODO add functions to update init_soc/route (would require re-pre-processing whenever called)
   
@@ -29,9 +30,9 @@ class Solver(object):
     
     possible_cs_connect = self._compute_possible_cs_connections(min_soc_at_departure, max_allowed_soc_at_arrival) #list[list[list[bool]]]
     
-    possible_cs_detour = self._compute_possible_cs_detour(max_detour_charge_time,False) #list[list[bool]]
+    possible_cs_detour = self._compute_possible_cs_detour(max_detour_charge_time, not self._multi_insert) #list[list[bool]]
     
-    possible_cs_link = self._compute_possible_cs_link(max_detour_charge_time) #list[list[list[bool]]]
+    possible_cs_link = self._compute_possible_cs_link(max_detour_charge_time, not self._multi_insert) #list[list[list[bool]]]
     
     node_local_id_dep = 0 #int
     
@@ -149,25 +150,30 @@ class Solver(object):
           self.instance.time_matrix[cs][s2] - \
           self.instance.time_matrix[s1][s2]
         if only_one: # take into account the minimum charge time as well
-          detour_time += self.instance.get_charging_time( \
-            self.instance.n_nodes_g[cs], \
-            0, \
-            self.instance.energy_matrix[s1][cs] + \
-              self.instance.energy_matrix[cs][s2] - \
-              self.instance.energy_matrix[s1][s2]
-            )
+          min_charge_amt = self.instance.energy_matrix[s1][cs] + self.instance.energy_matrix[cs][s2] - self.instance.energy_matrix[s1][s2]
+          if min_charge_amt > self.instance.max_q:
+            detour_time = float('inf')
+          else:
+            detour_time += self.instance.get_charging_time(self.instance.nodes_g[cs], 0, min_charge_amt)
         if detour_time <= max_detour_charge_time:
           result[i][i_cs] = True
     return result
 
   def _compute_possible_cs_link(self, 
-    max_detour_charge_time: float
+    max_detour_charge_time: float,
+    only_one=False
   ) -> List[List[List[bool]]]:
     """Can two CSs be connected between stops in the route?
     Shape is: len(self.route)-1 x numcss x numcss
     [i][j][k] = can we connect the jth CS to the kth CS between stops i and i+1 in the route?
     """
-    result = [[[False for k2 in range(self.instance.n_cs)] for k1 in range(self.instance.n_cs)] for i in range(len(self._route) -1)]
+    result = [[[False for k2 in range(self.instance.n_cs)] for k1 in range(self.instance.n_cs)] for i in range(len(self._route)-1)]
+    
+    # if we can only insert one CS between stops, then no connections are possible
+    if only_one:
+      return result
+
+    # otherwise, compute connections
     for i in range(len(self._route) -1):
       curr_stop = self._route[i]
       next_stop = self._route[i+1]
@@ -282,7 +288,7 @@ class Solver(object):
       if min_energy_to_charge > 0:
         latest_departure_time[i] -= min_energy_to_charge/self.instance.max_slope
       min_energy_at_departure[i] = self.instance.get_min_energy_to_cs(curr_id)
-      max_energy_at_departure[i] = min(self.instance.max_q,min_energy_consumed_after_node[i])
+      max_energy_at_departure[i] = self.instance.max_q
       # endregion
     
     return (
@@ -321,11 +327,16 @@ def main():
     required=True,
     help='The initial energy of the EV traveling the route')
 
+  num_insert_parser = parser.add_mutually_exclusive_group(required=False)
+  num_insert_parser.add_argument('--multi', dest='multi_insert', action='store_true', help='Allow multiple CSs to be inserted between stops in the route (default)')
+  num_insert_parser.add_argument('--one', dest='multi_insert', action='store_false', help='Allow only one CS to be inserted between stops in the routes')
+  parser.set_defaults(multi_insert=True)
+
   parser._action_groups.append(optional) # re-append the optional arguments
 
   args = parser.parse_args()
 
-  solver = Solver(args.instance, [int(stop) for stop in args.route.split(',')], args.qinit)
+  solver = Solver(args.instance, [int(stop) for stop in args.route.split(',')], args.qinit, args.multi_insert)
   duration, feas_route = solver.solve()
   print(f"Duration: {duration:.4}")
   print(f"Energy-feasible route:\n{feas_route}")
