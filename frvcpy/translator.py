@@ -81,12 +81,16 @@ def _get_process_times(process_times, requests):
   return process_times
 
 # primary method; converts an old (xml) instance file into a new (json) one
-def translate(from_filename, to_filename=None):
+def translate(from_filename, to_filename=None, v_type=None, depot_charging=True):
   """Translate a VRP-REP instance into an instance compatible with frvcpy.
   
   If to_filename is not specified, returns the instance in a Python dictionary.
   Otherwise, writes the instance in JSON format to the destination specified by
   to_filename and returns None.
+
+  If v_type is None, uses the first vehicle profile listed in the instance.
+
+  If depot_charging is True, the depot is assumed to be a valid CS at which the EV can charge.
   """
 
   with open(from_filename) as f_xml:
@@ -98,10 +102,18 @@ def translate(from_filename, to_filename=None):
   requests = instance_xml["requests"]['request']
   ev = instance_xml["fleet"]["vehicle_profile"]
   
-  if isinstance(ev,list):
-    print(f"WARNING: Using first vehicle profile from instance (instance contains {len(ev)}).")
-    ev = ev[0]
-    # TODO add optional CLI arg for which vehicle to grab from the instance
+  # getting the right vehicle from the instance
+  if isinstance(ev,list): # multiple vehicle profiles found
+    if v_type is None: # no vehicle type specified; just take the first one, but warn the user
+      print(f"INFO: Multiple vehicle_profiles found, but no type specified. Using first type listed in the instance ({ev[0]['@type']}).")
+      ev = ev[0]
+    else: # a vehicle type was specified; get it
+      good_evs = [v for v in ev if v['@type']==v_type]
+      assert len(good_evs)<2, f"Multiple vehicle profiles of type {v_type} found"
+      assert len(good_evs)>0, f"No vehicle profile found with specified type {v_type}"
+      ev = good_evs[0]
+  elif v_type is not None:
+    assert ev['@type'] == v_type, f"EV type (ev['@type']) does not match specified type ({v_type})"
   
   # Warn user about ignored instance sections
   _warn_unused_els(instance_xml)
@@ -129,9 +141,10 @@ def translate(from_filename, to_filename=None):
   max_t = float(ev['max_travel_time']) if ('max_travel_time' in ev) else None
 
   # append depot's CS to nodes
-  fastest = [t for t,r in type_to_speed.items() if r==0][0]
-  nodes.append({'@id':str(len(nodes)),'cx':nodes[0]['cx'],'cy':nodes[0]['cy'],'@type':'2','custom':{'cs_type':fastest}})
-  print(f"INFO: Depot assumed to be a CS with the instance's fastest charging type (fastest found was \'{fastest}\').")
+  if depot_charging:
+    fastest = [t for t,r in type_to_speed.items() if r==0][0]
+    nodes.append({'@id':str(len(nodes)),'cx':nodes[0]['cx'],'cy':nodes[0]['cy'],'@type':'2','custom':{'cs_type':fastest}})
+    print(f"INFO: Depot assumed to be a CS with the instance's fastest charging type (fastest found was \'{fastest}\').")
 
   # CSs
   css = [node for node in nodes if node['@type'] == '2']
@@ -187,13 +200,24 @@ def main():
   """Translates a VRP-REP instance for use with frvcpy."""
 
   parser = argparse.ArgumentParser(description="A translator for VRP-REP instances to make them compatible with frvcpy")
-  parser.add_argument('from_file', help='Filename for the VRP-REP instance to translate')
-  parser.add_argument('to_file', help='Filename for the new frvcpy instance to be created')
+  parser.add_argument('from_file', type=str, help='Filename for the VRP-REP instance to translate')
+  parser.add_argument('to_file', type=str, help='Filename for the new frvcpy instance to be created')
+  parser.add_argument(
+    "-v",
+    "--vtype",
+    type=str,
+    default=None,
+    help='Which vehicle_profile to use (by its "type" attribute); defaults to the first vehicle_profile in the instance')
+  # parse boolean for whether or not to allow charging at the depot
+  depot_cs_parser = parser.add_mutually_exclusive_group(required=False)
+  depot_cs_parser.add_argument('-d','--depotcs', dest='depot_cs', action='store_true', help='Allow vehicles to charge at the depot (default)')
+  depot_cs_parser.add_argument('--no-depotcs', dest='depot_cs', action='store_false', help='Disallow charging at the depot')
+  parser.set_defaults(depot_cs=True)
 
   args = parser.parse_args()
 
   print(f"Preparing to translate instance {args.from_file}...")
-  translate(args.from_file, args.to_file)
+  translate(from_filename=args.from_file, to_filename=args.to_file, v_type=args.vehicle, depot_charging=args.depot_cs)
   print(f"Translated instance file written to {args.to_file}")
 
   sys.exit(0)
