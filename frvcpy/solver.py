@@ -105,7 +105,7 @@ class Solver(object):
     """
     return [
       (max_soc_at_arrival[self._route[i]] - \
-        self.instance.energy_matrix[self._route[i]][self._route[i+1]] >= min_soc_at_departure[i+1]) \
+        self.instance.energy_matrix[self._route[i]][self._route[i+1]] >= min_soc_at_departure[self._route[i+1]]) \
       for i in range(len(self._route)-1)]
 
   def _compute_possible_cs_connections(self,
