@@ -4,7 +4,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-      name='frvcpy-nkullman',
+      name='frvcpy',
       version='0.0.1',
       author='Nicholas Kullman',
       author_email='nicholas.kullman@etu.univ-tours.fr',
