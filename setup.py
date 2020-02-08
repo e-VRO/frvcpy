@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
       name='frvcpy',
-      version='0.0.2',
+      version='0.0.3c1',
       author='Nicholas Kullman',
       author_email='nicholas.kullman@etu.univ-tours.fr',
       description='A solver for fixed route vehicle charging problems',
