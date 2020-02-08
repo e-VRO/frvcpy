@@ -6,6 +6,14 @@ from frvcpy.core import FrvcpInstance,Node
 from frvcpy.algorithm import FrvcpAlgo
 
 class Solver(object):
+  """Defines a Solver object for an FRVCP.
+  Required parameters are the instance (either a file path or dictionary),
+  the route (list of node IDs), and
+  the EVs initial energy.
+
+  Optional parameter multi_insert specifies whether the EV can visit more than one CS
+  between stops in the route.
+  """
   def __init__(self, instance, route: List[int], init_soc: float, multi_insert=True):
     self.instance = FrvcpInstance(instance)
     self._init_soc = init_soc
@@ -15,7 +23,10 @@ class Solver(object):
   # TODO add functions to update init_soc/route (would require re-pre-processing whenever called)
   
   def solve(self) -> Tuple[float, List[Any]]:
-    """Solve the FRVCP defined by the fixed route, intial SoC, and instance provided to the constructor."""
+    """Solve the FRVCP defined by the fixed route, intial energy, and instance provided to the constructor.
+    Returns the objective value (duration) of the energy-feasible route, along with a list of stops s=(i,c_i),
+    where i is the node ID and c_i is the amount of energy to recharge at i (c_i is None for non-CSs).
+    """
     # TODO offer a verbose option that would, eg, print times/charges of arrivals/departs from each node in the sequence
     
     max_detour_charge_time = self._compute_max_avail_time_detour_charge() # float

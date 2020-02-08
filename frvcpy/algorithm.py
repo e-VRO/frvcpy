@@ -4,7 +4,7 @@ from typing import List,Any,Tuple
 from frvcpy.core import Node,NodeType,FrvcpInstance,PseudoFibonacciHeap,HeapElement,NodeLabel
 
 class FrvcpAlgo(object):
-  """The Froger, et al. (2018) labeling algorithm to solve the FRVCP."""
+  """The Froger, et al. (2019) labeling algorithm to solve the FRVCP."""
 
   def __init__(self,
     instance: FrvcpInstance,
@@ -46,6 +46,7 @@ class FrvcpAlgo(object):
       float('inf') if label.supporting_pts[1][0] == 0 else 1/label.supporting_pts[1][0])
   
   def run_algo(self):
+    """Execute the labeling algorithm"""
     
     # is there an unset label associated with each node (using ID) in the updatable priority queue
     self.in_heap = [False for _ in self.nodes_gpr]
@@ -153,6 +154,8 @@ class FrvcpAlgo(object):
     return
 
   def _can_be_extended_to(self, curr_label: NodeLabel, next_node_local_id: int) -> bool:
+    """Can we extend curr_label to node given by next_node_local_id"""
+
     next_node = self.nodes_gpr[next_node_local_id]
     
     # Check is for charging stations only
@@ -364,6 +367,7 @@ class FrvcpAlgo(object):
     return
   
   def _is_dominated(self, label: NodeLabel, min_node_local_id: int) -> bool:
+    """Is label dominated by any of the set labels at min_node_local_id"""
     for other in self.set_labels[min_node_local_id]:
       if other.dominates(label):
         return True

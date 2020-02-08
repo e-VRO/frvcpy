@@ -5,8 +5,11 @@ import sys
 
 import xmltodict
 
-# define energy and time functions
 def _dist(i_node, j_node, dist_type) -> float:
+  """Returns the distance between two nodes.
+  
+  dist_type is either 'manhattan' or 'euclidean'
+  """
   
   if dist_type=='manhattan':
     return abs(float(i_node['cx']) - float(j_node['cx'])) + abs(float(i_node['cy']) - float(j_node['cy']))
@@ -14,13 +17,23 @@ def _dist(i_node, j_node, dist_type) -> float:
     return math.sqrt((float(i_node['cx']) - float(j_node['cx']))**2 + (float(i_node['cy']) - float(j_node['cy']))**2)
 
 def _t(i_node, j_node, speed, dist_type) -> float:
+  """Returns the travel time between two nodes.
+  
+  dist_type is either 'manhattan' or 'euclidean'
+  """
   return _dist(i_node, j_node, dist_type)/speed
 
 def _e(i_node,j_node,consump_rate, dist_type) -> float:
+  """Returns the energy required to travel between two nodes.
+  
+  dist_type is either 'manhattan' or 'euclidean'
+  """
   return _dist(i_node, j_node, dist_type)*consump_rate
 
 def _get_type_to_speed(cfs):
-  """Given a list of charging functions, returns an object whose keys are the CS types and values are speed rank."""
+  """Given a list of charging functions, returns an object whose keys are the CS types and values are speed rank.
+  Speed rank is a CS type's (0-indexed) position in the ordered list of fastest CS types.
+  """
   
   # compute max charge rates by type
   result = [{
@@ -52,6 +65,8 @@ def _get_precision_type(network_el):
     return None
 
 def _warn_unused_els(instance_el):
+  """Warn about unused information from the instance."""
+  
   unused_els = ['resources', 'drivers']
   for unused_el in unused_els:
     if unused_el in instance_el:
@@ -92,8 +107,10 @@ def translate(from_filename, to_filename=None, v_type=None, depot_charging=True)
   Otherwise, writes the instance in JSON format to the destination specified by
   to_filename and returns None.
 
+  v_type specifies the type of vehicle profile to use in the FRVCP.
   If v_type is None, uses the first vehicle profile listed in the instance.
 
+  depot_charging specifies whether the EV is allowed to charge at the depot.
   If depot_charging is True, the depot is assumed to be a valid CS at which the EV can charge.
   """
 

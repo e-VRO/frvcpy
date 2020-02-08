@@ -5,6 +5,7 @@ import json
 from typing import List, Any, Tuple
 
 class NodeType(Enum):
+  """Nodes are either the depot (0), a customer (1), or a charging station (2)."""
   DEPOT = 0,
   CUSTOMER = 1,
   CHARGING_STATION = 2
@@ -111,7 +112,8 @@ class NodeLabel(object):
         for b in range(len(self.slope))]
 
   def dominates(self, other) -> bool:
-    # drive time dominance
+    """Does this label dominate other"""
+    # does the other label have a lesser trip_time?
     if self.trip_time > other.trip_time:
       return False
     
@@ -122,19 +124,21 @@ class NodeLabel(object):
     # SOC dominance
     # 1) supp pts of this SOC function
     for k in range(self.n_pts):
-      soc_other = other.get_soc_dichotomic(self.supporting_pts[0][k])
+      soc_other = other.get_soc(self.supporting_pts[0][k])
       if self.supporting_pts[1][k] < soc_other:
         return False
 
     # 2) supp pts of the other SOC function
     for k in range(other.n_pts):
-      soc = self.get_soc_dichotomic(other.supporting_pts[0][k])
+      soc = self.get_soc(other.supporting_pts[0][k])
       if soc < other.supporting_pts[1][k]:
         return False
 
     return True
 
-  def get_soc_dichotomic(self, time: float) -> float:
+  def get_soc(self, time: float) -> float:
+    """Given a time, what is the corresponding SOC from
+    the label's supporting points."""
     if time < self.trip_time:
       return -float('inf')
 		
@@ -153,9 +157,11 @@ class NodeLabel(object):
     return self.slope[low] * time + self.y_intercept[low]
 
   def get_first_supp_pt_soc(self) -> float:
+    """Get the min charge over all supporting points."""
     return self.supporting_pts[1][0]
   
   def get_last_supp_pt_soc(self) -> float:
+    """Get the max charge over all supporting points."""
     return self.supporting_pts[1][-1]
     
   def get_num_supp_pts(self) -> int:
@@ -163,6 +169,7 @@ class NodeLabel(object):
     return len(self.supporting_pts[0])
   
   def get_path(self) -> List[int]:
+    """Get the path from this label backwards to the origin."""
     path = []
     curr_parent = self
     while curr_parent is not None:
@@ -175,8 +182,6 @@ class NodeLabel(object):
     visited since the last time it either a) visited a customer,
     b) visited a depot, or c) visited the node at which it
     currently resides.
-
-    I think. Getting closer to the implementation should answer this.
     """
     if self.last_visited_cs is None:
       return []
@@ -289,13 +294,12 @@ class NodeLabel(object):
   # endregion
 
 class FrvcpInstance(object):
-  def __init__(self, instance):
-    """Instantiate a frvcpy-compliant problem instance.
+  """An frvcpy-compliant problem instance.
 
-    'instance' parameter can either be a Python dictionary with the required information, or
-    it can be a string pointing to a JSON file containing this information.
-    """
+  'instance' can either be a Python dictionary with the required information, or
+  it can be a string pointing to a JSON file containing this information."""
     
+  def __init__(self, instance):
     # if string, assumed to be filename
     if isinstance(instance, str):
       with open(instance) as f:
@@ -334,22 +338,36 @@ class FrvcpInstance(object):
     self.nodes_g = self._make_nodes()
 
   def get_min_energy_to_cs(self, node_id: int) -> float:
+    """Calculates the amount of energy needed to get from node node_id to
+    the nearest CS.
+    """
     return 0.0 if node_id in self.cs_id_to_type \
       else min([self.energy_matrix[node_id][cs_id] for cs_id in self.cs_id_to_type])
   
   def get_cs_nodes(self) -> List[Node]:
+    """Returns the list of CS nodes."""
     return [node for node in self.nodes_g if node.type == NodeType.CHARGING_STATION]
   
   def _make_nodes(self) -> List[Node]:
+    """Returns a list of Nodes, where each node corresponds to a location (as given
+    by the length of the energy matrix). Nodes are listed as customers unless they 
+    are specifically noted as being CSs in the instance.
+    """
     return [
       Node(i, f'node-{i}',
         (NodeType.CHARGING_STATION if i in self.cs_id_to_type else NodeType.CUSTOMER))
       for i in range(len(self.energy_matrix)) ]
   
   def _make_type_to_supp_pts(self):
+    """Returns a dictionary with a key for each CS type, where the values are
+    the breakpoints defining the charging function for that CS type.
+    """
     return {cs_type:[pts["time"],pts["charge"]] for cs_type,pts in self.cs_bkpt_info.items()}
   
   def _make_type_to_slopes(self):
+    """Returns a dictionary with a key for each CS type, where the values are
+    the slopes of the linear segments of the charging function for that CS type.
+    """
     return {
       cs_type:[
         ((arr[1][i+1] - arr[1][i]) / (arr[0][i+1] - arr[0][i]))
@@ -357,6 +375,9 @@ class FrvcpInstance(object):
       for cs_type,arr in self.type_to_supp_pts.items()}
   
   def _make_type_to_yintercepts(self):
+    """Returns a dictionary with a key for each CS type, where the values are
+    the y-intercepts of the linear segments defining the charging function for that CS type.
+    """
     return {
       cs_type:[ # b = y-mx
         (self.type_to_supp_pts[cs_type][1][i] - 
@@ -365,12 +386,17 @@ class FrvcpInstance(object):
       for cs_type,arr in self.type_to_supp_pts.items()}
   
   def _make_cs_id_to_type_map(self):
+    """Returns a dictionary with a key for each CS node ID whose value is
+    the CS type of that node.
+    """
     return {cs["node_id"]:cs["cs_type"] for cs in self.cs_details}
   
   def _compute_max_slope(self):
+    """Returns the maximum charging rate across all CSs"""
     return max([slopes[0] for slopes in self.type_to_slopes.values()])
   
   def is_cs_faster(self, node1: Node, node2: Node) -> bool:
+    """True if node1 is a faster CS type than node2, False otherwise"""
     return (self.type_to_slopes[self.cs_id_to_type[node1.node_id]][0] > 
       self.type_to_slopes[self.cs_id_to_type[node2.node_id]][0])
   
@@ -396,6 +422,9 @@ class FrvcpInstance(object):
     return idx
   
   def get_slope(self, node: Node, soc: float=None):
+    """Returns the charging rate at energy level `soc` at `node`.
+    If `soc` is None, returns the charging function for `node`
+    """
     # if node passed but no soc, return slopes of node's charging function
     if soc is None:
       return self.type_to_slopes[self.cs_id_to_type[node.node_id]]
@@ -409,10 +438,14 @@ class FrvcpInstance(object):
     starting_energy: float,
     acquired_energy: float
   ):
+    """How long does it take to charge from starting_energy to acquired_energy at node"""
     return self.get_time_to_charge_from_zero(node,starting_energy+acquired_energy) - \
       self.get_time_to_charge_from_zero(node,starting_energy)
   
   def get_time_to_charge_from_zero(self, node: Node, soc: float):
+    """How long does it take to charge level `soc` at node.
+    node should be a CS
+    """
     seg_idx = self._get_cf_segment_idx(self.cs_id_to_type[node.node_id],soc,1)
     return (soc - self.type_to_yints[self.cs_id_to_type[node.node_id]][seg_idx]) / \
       self.type_to_slopes[self.cs_id_to_type[node.node_id]][seg_idx]
