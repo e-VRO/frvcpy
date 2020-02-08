@@ -12,15 +12,16 @@ This package offers a solver for the fixed route vehicle charging problem.
 
 <a name="frvcp"></a>
 ## The FRVCP
+### Inserting charging stations into an EV's route
 The __fixed route vehicle charging problem__ (FRVCP) is characterized by a vehicle that must visit an ordered sequence of locations (a fixed route). The vehicle is limited in its onboard energy, which gets depleted as it travels. As a result, it must restore its energy along the way. The typical objective of the FRVCP is to find the optimal "insertion" of energy restoration operations into the fixed route that minimize the route's duration. The problem was given its acronym in Montoya et al. (2017) for the case of electric vehicles (EVs), which require nontrivial amounts of time to restore the energy in their batteries and must therefore carefully consider their recharging operations.
 
 <a name="solver"></a>
 ## The Solver  
-To solve the FRVCP, we offer an implementation of the labeling algorithm from Froger et al. (2019), providing an exact solution in low runtime. The algorithm incorporates realistic problem features such as nonlinear charging functions, heterogeneous charging station technologies, and multiple CS visits between stops. 
+To solve the FRVCP, frvcpy implements the labeling algorithm from Froger et al. (2019), providing an exact solution in low runtime. The algorithm incorporates realistic problem features such as nonlinear charging functions, heterogeneous charging station technologies, and multiple CS visits between stops. 
 
 <a name="usage"></a>
 ## Usage
-With a compatible instance file ([schema here](./instances/frvcpy-instance.schema.json)), solve the FRVCP from a Python script: 
+With a compatible instance file ([see the schema](https://github.com/e-VRO/frvcpy/blob/master/instances/frvcpy-instance.schema.json)), solve the FRVCP from a Python script: 
 ```python
 from frvcpy.translator import translate
 from frvcpy.solver import Solver
@@ -51,7 +52,7 @@ frvcpy --instance=./instances/frvcpy-instance.json --route=0,3,2,1,0 --qinit=750
 
 <a name="translation"></a>
 ## Instance Translation
-We offer a translator for some E-VRP instance files formatted according to the [VRP-REP](http://www.vrp-rep.org/) [specification](http://www.vrp-rep.org/schemas/download/vrp-rep-instance-specification-0.5.0.xsd). 
+frvcpy includes a translator for some E-VRP instances formatted according to the [VRP-REP](http://www.vrp-rep.org/) [specification](http://www.vrp-rep.org/schemas/download/vrp-rep-instance-specification-0.5.0.xsd). 
 If you have such an instance file, it can be translated with the Python API via 
 ```python
 from frvcpy.translator import translate
@@ -59,23 +60,22 @@ from frvcpy.translator import translate
 # Option 1) make instance object to be passed directly to the solver
 frvcp_instance = translate("instances/vrprep-instance.xml")
 
-# Option 2) write instance to file, use as shown in "Usage" section
+# Option 2) write the translated instance to file
 frvcp_instance = translate("instances/vrprep-instance.xml", to_file="instances/my-instance.json")
 ```
 Or via the command line via
 ```bash
 frvcpy-translate instances/vrprep-instance.xml instances/my-instance.json
 ```
-### Requirements for VRP-REP instances
-Note that the translator assumes the VRP-REP instances are formatted similarly to the [Montoya et al. (2017) instances](http://vrp-rep.org/datasets/item/2016-0020.html). 
-That is, they abide by the following:
+### Translation requirements for VRP-REP instances
+The translator assumes VRP-REP instances are formatted similarly to the [Montoya et al. (2017) instances](http://vrp-rep.org/datasets/item/2016-0020.html): 
   - CSs are identified as `<node>` elements having attribute `type="2"`
   - Charging stations nodes have a `<custom>` child element which contains a `cs_type` element
-  - For each unique CS type _t_ appearing in the `cs_type` elements, there exists a charging `function` element with attribute `cs_type=t`
+  - For each unique CS type `t` appearing in those `cs_type` elements, there exists a charging `function` element with attribute `cs_type=t`
   - These `function` elements are part of a `charging_functions` element in a `vehicle_profile`'s `custom` element
   - The depot has node ID 0, the N customers have IDs {1, ..., N}, and the CSs have IDs {N+1, ..., N+C}
 
-A small example meeting these requirements is shown below:
+Here is a small example meeting these requirements:
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <instance>
@@ -141,8 +141,8 @@ A small example meeting these requirements is shown below:
 
 <a name="input"></a>
 ## Solver Input
-Use of the solver requires three things:
- 1. An instance (either a JSON file or equivalent Python dictionary) containing the information described in [the schema](./instances/frvcpy-instance.schema.json).
+Use of the solver requires
+ 1. An instance (either a JSON file or equivalent Python dictionary) containing the information described in [the schema](https://github.com/e-VRO/frvcpy/blob/master/instances/frvcpy-instance.schema.json).
 
     - We suggest following the convention where the first (zeroth) node is the depot, followed by customer nodes, followed by CS nodes.
 
