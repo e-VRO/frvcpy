@@ -1,25 +1,13 @@
 # frvcpy: An Open-Source Solver for the FRVCP
 This package offers a solver for the fixed route vehicle charging problem.
 
-##### Table of Contents  
-[The FRVCP](#frvcp)  
-[The Solver](#solver)  
-[Usage](#usage)  
-[Instance Translation](#translation)  
-[Solver Input](#input)  
-[Additional Information](#moreinfo)  
-
-
-<a name="frvcp"></a>
 ## The FRVCP
 ### Inserting charging stations into an EV's route
 The __fixed route vehicle charging problem__ (FRVCP) is characterized by a vehicle that must visit an ordered sequence of locations (a fixed route). The vehicle is limited in its onboard energy, which gets depleted as it travels. As a result, it must restore its energy along the way. The typical objective of the FRVCP is to find the optimal "insertion" of energy restoration operations into the fixed route that minimize the route's duration. The problem was given its acronym in Montoya et al. (2017) for the case of electric vehicles (EVs), which require nontrivial amounts of time to restore the energy in their batteries and must therefore carefully consider their recharging operations.
 
-<a name="solver"></a>
 ## The Solver  
 To solve the FRVCP, frvcpy implements the labeling algorithm from Froger et al. (2019), providing an exact solution in low runtime. The algorithm incorporates realistic problem features such as nonlinear charging functions, heterogeneous charging station technologies, and multiple CS visits between stops. 
 
-<a name="usage"></a>
 ## Usage
 With a compatible instance file ([see the schema](https://github.com/e-VRO/frvcpy/blob/master/instances/frvcpy-instance.schema.json)), solve the FRVCP from a Python script: 
 ```python
@@ -50,7 +38,6 @@ frvcpy --instance=./instances/frvcpy-instance.json --route=0,3,2,1,0 --qinit=750
 # [(0, None), (3, None), (2, None), (4, 300.0), (1, None), (0, None)]
 ```
 
-<a name="translation"></a>
 ## Instance Translation
 frvcpy includes a translator for some E-VRP instances formatted according to the [VRP-REP](http://www.vrp-rep.org/) [specification](http://www.vrp-rep.org/schemas/download/vrp-rep-instance-specification-0.5.0.xsd). 
 If you have such an instance file, it can be translated with the Python API via 
@@ -139,7 +126,6 @@ Here is a small example meeting these requirements:
 </instance>
 ```
 
-<a name="input"></a>
 ## Solver Input
 Use of the solver requires
  1. An instance (either a JSON file or equivalent Python dictionary) containing the information described in [the schema](https://github.com/e-VRO/frvcpy/blob/master/instances/frvcpy-instance.schema.json).
@@ -154,7 +140,6 @@ Use of the solver requires
  3. EV's initial charge
     - A number in [0, `max_q`], as defined in the instance
 
-<a name="moreinfo"></a>
 ## Additional information
 For more information about the algorithm used in the solver, see [Froger et al. (2019)](https://www.sciencedirect.com/science/article/abs/pii/S0305054818303253).
 
