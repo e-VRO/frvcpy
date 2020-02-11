@@ -103,6 +103,12 @@ class NodeLabel(object):
     self.y_intercept = self._compute_y_intercept() if y_intercept is None else y_intercept
     self.n_pts = len(self.supporting_pts[0])
 
+    def get_key(self):
+        """Returns the key associated with the label."""
+
+        return (self.key_time,
+                float('inf') if self.supporting_pts[1][0] == 0 else 1/self.supporting_pts[1][0])
+
   def _compute_y_intercept(self) -> List[float]:
     """Provides slopes for the segments in self.supporting_pts"""
     if self.slope is None:
