@@ -4,8 +4,6 @@ Specifically, it tests the algorithm over all FRVCP instances tested in
 Froger et al. (2019).
 """
 
-
-
 import argparse
 import csv
 import datetime
