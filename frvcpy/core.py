@@ -277,24 +277,29 @@ class NodeLabel():
         return charge_amts
 
     def __str__(self):
-        rep = f"---- Label for node {self.node_id_for_label}\n"
-        rep += (f"keyTime = {self.key_time}\t tripTime = {self.trip_time}\n")
-        rep += (f"timeLastArc = {self.time_last_arc}\t energyLastArc = {self.energy_last_arc}\n")
-        rep += (f"lastVisitedCS = {self.last_visited_cs}\t")
-        rep += (f"socAtArrLastCS = {self.soc_arr_to_last_cs}\n")
-        rep += (
-            f"energyConsumedSinceLastCS = {self.energy_consumed_since_last_cs}\n")
-        rep += ("Supporting points \n")
-        rep += str(self.supporting_pts[0])+"\n"
-        rep += str(self.supporting_pts[1])+"\n"
+        str_parts = [
+            f"---- Label for node {self.node_id_for_label}",
+            f"keyTime = {self.key_time}",
+            f"tripTime = {self.trip_time}",
+            f"timeLastArc = {self.time_last_arc}",
+            f"energyLastArc = {self.energy_last_arc}",
+            f"lastVisitedCS = {self.last_visited_cs}",
+            f"socAtArrLastCS = {self.soc_arr_to_last_cs}",
+            f"energyConsumedSinceLastCS = {self.energy_consumed_since_last_cs}",
+            "Supporting points",
+            str(self.supporting_pts[0]),
+            str(self.supporting_pts[1])
+        ]
         if self.slope is not None:
-            rep += "Slope\n"
-            rep += str(self.slope)+"\n"
-            rep += "Intercept\n"
-            rep += str(self.y_intercept)+"\n"
-        rep += "Path\n"
-        rep += str(self.get_path())
-        return rep
+            str_parts.extend([
+                "Slope",
+                str(self.slope),
+                "Intercept",
+                str(self.y_intercept)])
+        str_parts.extend([
+            "Path",
+            str(self.get_path())])
+        return '\n'.join(str_parts)
 
     # region comparable methods
     def __hash__(self):
