@@ -282,7 +282,8 @@ class NodeLabel():
         rep += (f"timeLastArc = {self.time_last_arc}\t energyLastArc = {self.energy_last_arc}\n")
         rep += (f"lastVisitedCS = {self.last_visited_cs}\t")
         rep += (f"socAtArrLastCS = {self.soc_arr_to_last_cs}\n")
-        rep += (f"energyConsumedSinceLastCS = {self.energy_consumed_since_last_cs}\n")
+        rep += (
+            f"energyConsumedSinceLastCS = {self.energy_consumed_since_last_cs}\n")
         rep += ("Supporting points \n")
         rep += str(self.supporting_pts[0])+"\n"
         rep += str(self.supporting_pts[1])+"\n"
@@ -466,9 +467,9 @@ class FrvcpInstance():
         """Axis is 1 for charge and 0 for time."""
 
         idx = 0
-        while not (self.type_to_supp_pts[cs_type][axis][idx] <= value and
-                   value < self.type_to_supp_pts[cs_type][axis][idx+1]
-                   ):
+        while not (self.type_to_supp_pts[cs_type][axis][idx] <=
+                   value < self.type_to_supp_pts[cs_type][axis][idx+1]):
+
             idx += 1
             # for the last segment, check its upper limit
             if idx == len(self.type_to_supp_pts[cs_type][axis])-1:

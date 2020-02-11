@@ -5,8 +5,8 @@ import os
 
 import xmltodict
 
-from frvcpy.solver import Solver
-from frvcpy.translator import translate
+from frvcpy import solver
+from frvcpy import translator
 
 def _get_routes(instance_name, routes_folder):
     """Get list of routes (and their names) to solve for the given instance"""
@@ -53,7 +53,7 @@ def test_evrpnl_instances(instances_folder, routes_folder, output_file=None):
 
         # translate the E-VRP-NL instances
         t0 = datetime.datetime.now()
-        inst_dict = translate(instance_fullname)
+        inst_dict = translator.translate(instance_fullname)
         t1 = datetime.datetime.now()
         total_translate_time += (t1-t0).total_seconds()
         num_translations += 1
@@ -62,11 +62,11 @@ def test_evrpnl_instances(instances_folder, routes_folder, output_file=None):
 
             print(f'Route {i_r+1}/{len(routes)} ({route_name}): {route}')
 
-            solver = Solver(inst_dict,route,inst_dict['max_q'])
+            frvcp_solver = solver.Solver(inst_dict,route,inst_dict['max_q'])
 
             # run solver
             t0 = datetime.datetime.now()
-            obj,f_route = solver.solve()
+            obj,f_route = frvcp_solver.solve()
             t1 = datetime.datetime.now()
             elapsed = (t1-t0).total_seconds()
             

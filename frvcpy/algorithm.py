@@ -4,7 +4,8 @@ algorithm for the FRVCP from Froger et al. (2019).
 
 from typing import List, Tuple
 
-from frvcpy.core import Node, NodeType, FrvcpInstance, PseudoFibonacciHeap, HeapElement, NodeLabel
+from frvcpy import core
+# from frvcpy.core import Node, NodeType, FrvcpInstance, PseudoFibonacciHeap, HeapElement, NodeLabel
 
 
 class FrvcpAlgo():
@@ -12,9 +13,9 @@ class FrvcpAlgo():
     """
 
     def __init__(self,
-                 instance: FrvcpInstance,
+                 instance: core.FrvcpInstance,
                  init_soc: float,
-                 nodes_gpr: List[Node],
+                 nodes_gpr: List[core.Node],
                  adjacency_list: List[List[int]],
                  node_local_id_dep: int, node_local_id_arr: int, max_slope: float,
                  min_energy_consumed_after_node: List[float],
@@ -83,7 +84,7 @@ class FrvcpAlgo():
 
         # priority queues of unset labels for each node
         # ("for CS only labels at departure" -- meaning it represents keytime when departing the CS?)
-        self.unset_labels = [PseudoFibonacciHeap() for _ in self.nodes_gpr]
+        self.unset_labels = [core.PseudoFibonacciHeap() for _ in self.nodes_gpr]
 
         # list of set (nondominated) labels for each node
         # ("for CS only labels at departure" -- meaning it represents keytime when departing the CS?)
@@ -93,11 +94,11 @@ class FrvcpAlgo():
         self.heap_elements = [None for _ in self.nodes_gpr]
 
         # stores best unset labels for each node (tasks are integers or labels?)
-        self.heap = PseudoFibonacciHeap()
+        self.heap = core.PseudoFibonacciHeap()
 
         # build first label
         first_label = self._build_first_label()
-        self.heap_elements[self.node_local_id_dep] = HeapElement(
+        self.heap_elements[self.node_local_id_dep] = core.HeapElement(
             self.node_local_id_dep)
         self.key[self.node_local_id_dep] = first_label.get_key()
         self.heap.add_task(
@@ -131,7 +132,7 @@ class FrvcpAlgo():
 
             # if label is a CS, we build the list of labels according to the supp pts
             # of the SOC function
-            if (self.nodes_gpr[min_node_local_id].type == NodeType.CHARGING_STATION and
+            if (self.nodes_gpr[min_node_local_id].type == core.NodeType.CHARGING_STATION and
                     label_to_set.last_visited_cs != min_node_local_id):
                 new_labels = self._build_label_list(label_to_set)
                 for new_label in new_labels:
@@ -180,7 +181,7 @@ class FrvcpAlgo():
                     # if this is the first label for the node
                     else:
                         # add it to the heap
-                        self.heap_elements[next_node_local_id] = HeapElement(
+                        self.heap_elements[next_node_local_id] = core.HeapElement(
                             next_node_local_id)
                         self.heap.add_task(
                             self.heap_elements[next_node_local_id], new_label.get_key())
@@ -190,13 +191,13 @@ class FrvcpAlgo():
             # add min node to the heap
             self._insert_new_node_in_heap(min_node_local_id)
 
-    def _can_be_extended_to(self, curr_label: NodeLabel, next_node_local_id: int) -> bool:
+    def _can_be_extended_to(self, curr_label: core.NodeLabel, next_node_local_id: int) -> bool:
         """Can we extend curr_label to node given by next_node_local_id"""
 
         next_node = self.nodes_gpr[next_node_local_id]
 
         # Check is for charging stations only
-        if next_node.type == NodeType.CHARGING_STATION:
+        if next_node.type == core.NodeType.CHARGING_STATION:
             # while scanning nodes of the route backward, we need to encounter
             # the depot, a customer, or a faster charging station before
             # scanning the same charging station
@@ -211,7 +212,7 @@ class FrvcpAlgo():
                     # has not visited a faster CS after first visit
                     stop = True
                     break
-                if parent_node.type == NodeType.CHARGING_STATION:
+                if parent_node.type == core.NodeType.CHARGING_STATION:
                     cs_nodes.append(parent_node)
                 else:  # customer or depot
                     stop = True
@@ -230,9 +231,9 @@ class FrvcpAlgo():
 
         return True
 
-    def _relax_arc(self, curr_label: NodeLabel, next_node_local_id: int,
+    def _relax_arc(self, curr_label: core.NodeLabel, next_node_local_id: int,
                    energy_arc: float, time_arc: float
-                   ) -> NodeLabel:
+                   ) -> core.NodeLabel:
         """Returns the label built by the extension of curr_label to the
         node given by next_node_local_id."""
 
@@ -244,7 +245,7 @@ class FrvcpAlgo():
         new_last_visited = None
 
         # modifications if curr_label is a charging station
-        if self.nodes_gpr[curr_label.node_id_for_label].type == NodeType.CHARGING_STATION:
+        if self.nodes_gpr[curr_label.node_id_for_label].type == core.NodeType.CHARGING_STATION:
             new_e_consumed_since_last_cs = energy_arc
             new_last_visited = curr_label.node_id_for_label
             new_soc_at_last_cs = curr_label.get_first_supp_pt_soc()
@@ -304,11 +305,11 @@ class FrvcpAlgo():
                         min_soc_at_next/self.max_slope)
 
         # return a new label for the relaxation to the new node
-        return NodeLabel(next_node_local_id, key_time, trip_time, new_last_visited,
+        return core.NodeLabel(next_node_local_id, key_time, trip_time, new_last_visited,
                          new_soc_at_last_cs, new_e_consumed_since_last_cs, curr_label.supporting_pts,
                          curr_label.slope, time_arc, energy_arc, curr_label, y_intercept=curr_label.y_intercept)
 
-    def _build_label_list(self, curr_label: NodeLabel) -> List[NodeLabel]:
+    def _build_label_list(self, curr_label: core.NodeLabel) -> List[core.NodeLabel]:
         """Builds list of labels to extend from the curr_label. Specifically,
         creates one new label for each supporting point of the current SOC
         function in order to explore the possibility of switching over to the
@@ -320,7 +321,7 @@ class FrvcpAlgo():
         curr_node = self.nodes_gpr[curr_local_id]
 
         # we only split into new labels at charging stations
-        if curr_node.type == NodeType.CHARGING_STATION:
+        if curr_node.type == core.NodeType.CHARGING_STATION:
 
             # charging function details
             cs_supp_pts = self.instance.get_cf_breakpoints(
@@ -398,7 +399,7 @@ class FrvcpAlgo():
                         soc_at_cs/self.max_slope
 
                 # make new label
-                label_list.append(NodeLabel(curr_local_id, key_time, trip_time, curr_local_id,
+                label_list.append(core.NodeLabel(curr_local_id, key_time, trip_time, curr_local_id,
                                             curr_label.soc_arr_to_last_cs, curr_label.energy_consumed_since_last_cs,
                                             supp_pts_new, slope_new, 0, 0, curr_label.parent)
                                   )
@@ -413,12 +414,12 @@ class FrvcpAlgo():
         # if current node has unset label, insert this node in the heap with a new key
         if self.unset_labels[local_node_id]:
             new_key = self.unset_labels[local_node_id].peek().get_key()
-            self.heap_elements[local_node_id] = HeapElement(local_node_id)
+            self.heap_elements[local_node_id] = core.HeapElement(local_node_id)
             self.heap.add_task(self.heap_elements[local_node_id], new_key)
             self.in_heap[local_node_id] = True
             self.key[local_node_id] = new_key
 
-    def _is_dominated(self, label: NodeLabel, min_node_local_id: int) -> bool:
+    def _is_dominated(self, label: core.NodeLabel, min_node_local_id: int) -> bool:
         """Is label dominated by any of the set labels at min_node_local_id"""
 
         for other in self.set_labels[min_node_local_id]:
@@ -426,7 +427,7 @@ class FrvcpAlgo():
                 return True
         return False
 
-    def _compute_supporting_points(self, label: NodeLabel) -> NodeLabel:
+    def _compute_supporting_points(self, label: core.NodeLabel) -> core.NodeLabel:
         """Provides a new label that is identical to the argument, but with
         the supporting points, slopes, and y-intercepts updated.
         """
@@ -529,11 +530,11 @@ class FrvcpAlgo():
                               label.time_last_arc*label.slope[k]) for k in range(first_k, last_k-1)]
 
         # construction complete. return new label
-        return NodeLabel(local_id, label.key_time, label.trip_time, label.last_visited_cs,
+        return core.NodeLabel(local_id, label.key_time, label.trip_time, label.last_visited_cs,
                          label.soc_arr_to_last_cs, label.energy_consumed_since_last_cs, new_supp_pts,
                          slope_now, 0, 0, label.parent, y_int_now)
 
-    def _build_first_label(self) -> NodeLabel:
+    def _build_first_label(self) -> core.NodeLabel:
         """Constructs the initial label to kick off the labeling algorithm."""
 
         supp_pts = [[0], [self.init_soc]]
@@ -542,7 +543,7 @@ class FrvcpAlgo():
             key_time = self.min_travel_time_after_node[self.node_local_id_dep]
         else:
             key_time = self.min_travel_charge_time_after_node[self.node_local_id_dep]
-        return NodeLabel(self.node_local_id_dep, key_time, 0, None, self.init_soc,
+        return core.NodeLabel(self.node_local_id_dep, key_time, 0, None, self.init_soc,
                          0, supp_pts, None, 0, 0, None)
 
     def get_optimized_route(self) -> List[Tuple]:
@@ -561,7 +562,7 @@ class FrvcpAlgo():
         nodes_path = [self.nodes_gpr[k] for k in path]
         charging_index = 0
         for node in nodes_path:
-            if node.type == NodeType.CHARGING_STATION:
+            if node.type == core.NodeType.CHARGING_STATION:
                 route.insert(0, (node.node_id, charge_amts[charging_index]))
                 charging_index += 1
             else:

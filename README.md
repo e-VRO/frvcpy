@@ -11,14 +11,13 @@ To solve the FRVCP, frvcpy implements the labeling algorithm from Froger et al. 
 ## Usage
 With a compatible instance file ([see the schema](https://github.com/e-VRO/frvcpy/blob/master/instances/frvcpy-instance.schema.json)), solve the FRVCP from a Python script: 
 ```python
-from frvcpy.translator import translate
-from frvcpy.solver import Solver
+from frvcpy import solver
 
 route = [0,3,2,1,0]      # route to make energy feasible
 q_init = 750           # vehicle's initial energy level
 
 # using an existing instance from file
-frvcp_solver = Solver("instances/frvcpy-instance.json", route, q_init)
+frvcp_solver = solver.Solver("instances/frvcpy-instance.json", route, q_init)
 
 # run the algorithm
 duration, feas_route = frvcp_solver.solve()
@@ -42,13 +41,13 @@ frvcpy --instance=./instances/frvcpy-instance.json --route=0,3,2,1,0 --qinit=750
 frvcpy includes a translator for some E-VRP instances formatted according to the [VRP-REP](http://www.vrp-rep.org/) [specification](http://www.vrp-rep.org/schemas/download/vrp-rep-instance-specification-0.5.0.xsd). 
 If you have such an instance file, it can be translated with the Python API via 
 ```python
-from frvcpy.translator import translate
+from frvcpy import translator
 
 # Option 1) make instance object to be passed directly to the solver
-frvcp_instance = translate("instances/vrprep-instance.xml")
+frvcp_instance = translator.translate("instances/vrprep-instance.xml")
 
 # Option 2) write the translated instance to file
-frvcp_instance = translate("instances/vrprep-instance.xml", to_file="instances/my-instance.json")
+frvcp_instance = translator.translate("instances/vrprep-instance.xml", to_file="instances/my-instance.json")
 ```
 Or via the command line via
 ```bash
