@@ -14,7 +14,15 @@ class Solver(object):
   Optional parameter multi_insert specifies whether the EV can visit more than one CS
   between stops in the route.
   """
+
   def __init__(self, instance, route: List[int], init_soc: float, multi_insert=True):
+    
+    # if passed an XML file, attempt to translate it
+    if isinstance(instance,(str)) and instance[-4:] == ".xml":
+      print("INFO: Passed instance is an XML file. Assuming it is a VRP-REP instance and attempting to translate it...")
+      instance = translate(instance)
+      print("INFO: Instance translated.")
+    
     self.instance = FrvcpInstance(instance)
     self._init_soc = init_soc
     self._route = route
