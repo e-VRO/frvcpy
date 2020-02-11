@@ -365,7 +365,8 @@ class FrvcpAlgo():
                 # passed all checks. Will switch to new CS
                 # Compute first break pt of charging function above the SOC with which we arrived
                 first_k = 0
-                assert soc_at_cs >= 0, "Arrived to CS with negative SOC"
+                if soc_at_cs < 0:
+                    raise ValueError("Supporting point has negative energy")
                 while first_k < cs_n_pts and cs_supp_pts[1][first_k] <= soc_at_cs:
                     first_k += 1
 
