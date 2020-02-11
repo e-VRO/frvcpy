@@ -4,6 +4,7 @@ from typing import List, Any, Tuple
 
 from frvcpy.core import FrvcpInstance,Node
 from frvcpy.algorithm import FrvcpAlgo
+from frvcpy.translator import translate
 
 class Solver(object):
   """Defines a Solver object for an FRVCP.
@@ -32,10 +33,15 @@ class Solver(object):
   
   def solve(self) -> Tuple[float, List[Any]]:
     """Solve the FRVCP defined by the fixed route, intial energy, and instance provided to the constructor.
+
     Returns the objective value (duration) of the energy-feasible route, along with a list of stops s=(i,c_i),
     where i is the node ID and c_i is the amount of energy to recharge at i (c_i is None for non-CSs).
     """
+
     # TODO offer a verbose option that would, eg, print times/charges of arrivals/departs from each node in the sequence
+    
+    if self._no_recharge_needed():
+      return [(stop,None) for stop in self._route]
     
     max_detour_charge_time = self._compute_max_avail_time_detour_charge() # float
     
@@ -95,6 +101,12 @@ class Solver(object):
     # return results
     return (label_algo.get_objective_value(),label_algo.get_optimized_route())
 
+  def _no_recharge_needed(self) -> bool:
+    """Returns True if the EV can serve the route without recharging"""
+
+    return self._init_soc >= sum([self.instance.energy_matrix[i][j] for i,j in zip(self._route[:-1],self._route[1:])])
+    
+  
   def _compute_max_avail_time_detour_charge(self) -> float:
     """Max amount of time we have to detour and charge (in consideration
     of the time duration).
