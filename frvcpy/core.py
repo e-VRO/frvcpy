@@ -1,5 +1,5 @@
 """This module defines objects used in the execution of
-the labeling algorithm in algorithm.py.
+the labeling algorithm from algorithm.py.
 """
 
 from enum import Enum
@@ -18,7 +18,13 @@ class NodeType(Enum):
 
 
 class Node():
-    """Defines a node for the graph underlying an FRVCP."""
+    """Defines a node for the graph underlying an FRVCP.
+    
+    Attributes:
+        node_id: The (int) ID of the node in the instance
+        name: A name (str) for the node
+        type: the core.NodeType of the node
+    """
 
     def __init__(self, node_id: int, name: str, node_type: NodeType):
 
@@ -27,6 +33,7 @@ class Node():
         self.type = node_type
 
     def __str__(self):
+        
         return f'({self.node_id}; {self.type})'
 
 
@@ -346,10 +353,43 @@ class NodeLabel():
 class FrvcpInstance():
     """An frvcpy-compliant problem instance.
 
-    'instance' can either be a Python dictionary with the required information, or
-    it can be a string pointing to a JSON file containing this information."""
+    Attributes:
+        energy_matrix: Square matrix (List of Lists of numbers) indicating the
+            energy required to travel between nodes in the instance
+        time_matrix: Square matrix (List of Lists of numbers) indicating the
+            time required to travel between nodes in the instance
+        process_times: List of numbers indicating the processing time at each
+            node (assumed to be 0 for all nodes if not specified)
+        n_nodes_g: Integer indicating the number of nodes in the instance
+        max_q: The maximum energy that can be stored in the EV's battery
+        t_max: The maximum duration of a route (taken to be 6e9 if not
+            specified)
+        cs_bkpt_info: Dictionary with a key for each CS type/technology. Values
+            are the breakpoints defining the (convex) piecewise linear charging
+            function, given by two Lists of numbers: "time" and "charge"
+        cs_details: List of dicts, each of which contains a field for 'node_id'
+            and 'cs_type'
+        n_cs: Number of CSs in the instance
+        type_to_supp_pts: Dictionary mapping CS types to the breakpoints
+            defining their charging functions
+        type_to_slopes: Dictionary mapping CS types to the slopes of the
+            piecewise linear segments defining their charging functions
+        type_to_yints: Dictionary mapping CS types to the y-intercepts of
+            the piecewise linear segments defining their charging functions
+        max_slope: The maximum charging rate across all CS types in the instance
+        cs_id_to_type: Dictionary mapping (CS) node IDs to their CS type
+        nodes_g: List of core.Node objects for the nodes in the instance
+
+    """
 
     def __init__(self, instance):
+        """Instantiates an FRVCP problem instance.
+        
+        Args:
+            instance: either the filename (str) of a compatible problem instance
+                or a dictionary containing the required info
+
+        """
         # if string, assumed to be filename
         if isinstance(instance, str):
             with open(instance) as instance_file:
@@ -368,11 +408,10 @@ class FrvcpInstance():
         self.max_q = instance["max_q"]
         # come onnnn, 6 billion!
         self.t_max = instance["t_max"] if "t_max" in instance else 6e9
-        # keys are cs types, values are dicts that map "time" or "charge" to
-        # corresponding arrays of floats
-        self.cs_bkpt_info = instance["breakpoints_by_type"]
+        # list of dicts with charging function breakpoints
+        cs_bkpt_info_list = instance["breakpoints_by_type"]
         # use the cs type as the key
-        self.cs_bkpt_info = {v['cs_type']: v for v in self.cs_bkpt_info}
+        self.cs_bkpt_info = {v['cs_type']: v for v in cs_bkpt_info_list}
         # list of objs with attrs 'node_id' and 'type'
         self.cs_details = instance["css"]
         # number of charging stations
