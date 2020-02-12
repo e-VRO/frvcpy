@@ -1,4 +1,6 @@
-"""This module defines the Solver class for the FRVCP and
+"""A module for solving FRVCPs.
+
+This module defines the Solver class for the FRVCP and
 offers a main function for execution of the solver from
 the command line.
 """
@@ -7,23 +9,43 @@ import argparse
 import sys
 from typing import List, Any, Tuple
 
-from frvcpy.algorithm import FrvcpAlgo
+from frvcpy import algorithm
 from frvcpy import core
 from frvcpy import translator
 
 
 class Solver():
-    """Defines a Solver object for an FRVCP.
+    """A Solver object for the FRVCP.
 
-    Required parameters are the instance (either a file path or dictionary),
-    the route (list of node IDs), and the EVs initial energy.
+    The solution of an FRVCP happens through the Solver class.
+    The problem instance, route to be solved for, and the EV's
+    initial charge are provided to the constructor. Then the
+    solution is generated as follows.
 
-    Optional parameter multi_insert specifies whether the EV can visit more than one CS
-    between stops in the route.
+        Typical usage example:
+            frvcp_solver = Solver(instance,route,q_init)
+            duration, feasible_route = frvcp_solver.solve()
+
+    Attributes:
+        instance: the core.FrvcpInstance for the FRVCP to be solved
     """
 
-    def __init__(self, instance, route: List[int], init_soc: float, multi_insert=True):
+    def __init__(self, instance, route: List[int], q_init: float, multi_insert: bool = True):
+        """Initiates a Solver for the FRVCP.
 
+        Args:
+            instance: either the filename (str) of a problem instance or a
+                dictionary containing the required info. Typically the problem
+                instance is already in a compliant JSON file. However, if a
+                filename ending in ".xml" is passed, it is assumed to be a
+                VRP-REP instance, and it will attempt to be translated.
+            route: A list of integers representing the fixed route to be
+                traveled by the vehicle
+            q_init: The energy with which the EV begins the route
+            multi_insert: A boolean specifying whether the EV is allowed to
+                visit multiple CSs between stops in the route
+
+        """
         # if passed an XML file, attempt to translate it
         if isinstance(instance, (str)) and instance[-4:] == ".xml":
             print("INFO: Passed instance is an XML file. "+
@@ -32,20 +54,23 @@ class Solver():
             print("INFO: Instance translated.")
 
         self.instance = core.FrvcpInstance(instance)
-        self._init_soc = init_soc
+        self._init_soc = q_init
         self._route = route
         self._multi_insert = multi_insert
 
     # TODO add functions to update init_soc/route (would require re-pre-processing whenever called)
 
     def solve(self) -> Tuple[float, List[Any]]:
-        """Solve the FRVCP defined by the fixed route, intial energy,
-        and instance provided to the constructor.
+        """Solve the FRVCP defined by the instance, route, and intial energy
+        provided to the constructor.
 
-        Returns the objective value (duration) of the energy-feasible
-        route, along with a list of stops s=(i,c_i), where i is the
-        node ID and c_i is the amount of energy to recharge at i(c_i is
-        None for non-CSs).
+        Returns:
+            A tuple (obj,feas_route), where obj (float) is the duration of the
+            energy-feasible route (if it exists; inf otherwise) and feas_route
+            is a list of stops s_i defining the energy-feasible route. Stops
+            s_i=(node_i,charge_amt_i) are themselves tuples consisting of the
+            node ID (int) of the stop and the amount (float) to charge there (None if
+            node_i is not a CS).
         """
 
         # TODO offer a verbose option that would, eg, print times/charges of
@@ -100,7 +125,7 @@ class Solver():
         ) = self._compute_bounds(nodes_gpr)  # list[list[float]]
 
         # initialize algorithm
-        label_algo = FrvcpAlgo(
+        label_algo = algorithm.FrvcpAlgo(
             self.instance,
             self._init_soc,
             nodes_gpr,
@@ -392,7 +417,7 @@ class Solver():
 
 
 def main():
-    """Solving an FRVCP."""
+    """Solves an FRVCP."""
 
     parser = argparse.ArgumentParser(description="Solves an FRVCP")
     # grab the optional arguments to re-append after the required named arguments

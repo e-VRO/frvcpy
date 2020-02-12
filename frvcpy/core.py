@@ -353,6 +353,9 @@ class NodeLabel():
 class FrvcpInstance():
     """An frvcpy-compliant problem instance.
 
+    Note: it is generally suggested that nodes in the instance be ordered such
+    that a depot comes first, then customers, then CSs.
+
     Attributes:
         energy_matrix: Square matrix (List of Lists of numbers) indicating the
             energy required to travel between nodes in the instance
