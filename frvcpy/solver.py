@@ -3,6 +3,9 @@
 This module defines the Solver class for the FRVCP and
 offers a main function for execution of the solver from
 the command line.
+
+Classes:
+    Solver: the class with which users interact to solve an FRVCP
 """
 
 import argparse

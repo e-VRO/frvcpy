@@ -1,13 +1,26 @@
-"""This module provides support for instance translation from VRP-REP format
+"""A translator to make FRVCP instances from VRP-REP instances.
+
+This module provides support for instance translation from the VRP-REP format
 to a format compliant with frvcpy.
 
+Functions:
+    translate: responsible for translating an instance
+
+Typical usage:
+    # return a dict to pass to Solver:
+    translate("vrprep-instance.xml")
+    # writes translated instance to file
+    translate("vrprep-instance.xml", "my-new-frvcp-instance.json")
+
 More on the VRP-REP instance format: http://www.vrp-rep.org/
-More on the frvcpy instance format: github.com/e-VRO/frvcpy
+More on the frvcpy instance format: the schema in the instances directory of
+    frvcpy's homepage: github.com/e-VRO/frvcpy
 """
 
 import argparse
 import json
 import math
+from typing import Any, Optional
 import sys
 
 import xmltodict
@@ -126,21 +139,27 @@ def _get_process_times(process_times, requests):
             process_times[int(req['@node'])] = float(req['service_time'])
     return process_times
 
-# primary method; converts an old (xml) instance file into a new (json) one
 
-
-def translate(from_filename, to_filename=None, v_type=None, depot_charging=True):
+def translate(
+        from_filename,
+        to_filename: str = None,
+        v_type: Any = None,
+        depot_charging: bool = True) -> Optional[dict]:
     """Translate a VRP-REP instance into an instance compatible with frvcpy.
 
-    If to_filename is not specified, returns the instance in a Python dictionary.
-    Otherwise, writes the instance in JSON format to the destination specified by
-    to_filename and returns None.
+    Args:
+        from_filename: filename (str) of the instance to be translated
+        to_filename: filename (str) of the translated instance to be written. If
+            not specified, the function returns the instance in a Python dictionary.
+        v_type: the value of the `type` attribute of the vehicle_profile from the
+            instance to be used (what vehicle type to solve the FRVCP for)
+        depot_charging: whether the EV is allowed to recharge at the depot
+            (True by default)
 
-    v_type specifies the type of vehicle profile to use in the FRVCP.
-    If v_type is None, uses the first vehicle profile listed in the instance.
-
-    depot_charging specifies whether the EV is allowed to charge at the depot.
-    If depot_charging is True, the depot is assumed to be a valid CS at which the EV can charge.
+    Returns:
+        If to_filename is specified, writes the translated instance to file and
+            returns None. Otherwise (to_filename not specified) returns the
+            necessary instance parameters in a dict.
     """
 
     with open(from_filename) as f_xml:
