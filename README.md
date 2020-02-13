@@ -76,6 +76,8 @@ Or with the command line (only option is to write the translated instance to fil
 frvcpy-translate instances/vrprep-instance.xml instances/my-new-instance.json
 ```
 
+##### Note: If an instance ending in ".xml" is passed to the solver, it is assumed to be a VRP-REP instance, and the solver will automatically attempt to translate it.
+
 ### Translation requirements for VRP-REP instances
 
 frvcpy's translator assumes VRP-REP instances are formatted similarly to the [Montoya et al. (2017) instances](http://vrp-rep.org/datasets/item/2016-0020.html):
