@@ -5,12 +5,16 @@ offers a main function for execution of the solver from
 the command line.
 
 Classes:
-    Solver: the class with which users interact to solve an FRVCP
+    Solver: the class users interact with to solve an FRVCP
 """
 
 import argparse
+import copy
+import os
 import sys
 from typing import List, Any, Tuple
+
+import xmltodict
 
 from frvcpy import algorithm
 from frvcpy import core
@@ -26,11 +30,15 @@ class Solver():
     solution is generated as follows.
 
         Typical usage example:
-            frvcp_solver = Solver(instance,route,q_init)
+            frvcp_solver = Solver("my-instance.json", route, q_init)
             duration, feasible_route = frvcp_solver.solve()
+            frvcp_solver.write_solution("my-solution.xml", "my-instance")
 
     Attributes:
         instance: the core.FrvcpInstance for the FRVCP to be solved
+        solution: output from execution of the labeling algorithm, if
+            available (see solve()'s docstring for more info on the algorithm's
+            output)
     """
 
     def __init__(self, instance, route: List[int], q_init: float, multi_insert: bool = True):
@@ -51,15 +59,17 @@ class Solver():
         """
         # if passed an XML file, attempt to translate it
         if isinstance(instance, (str)) and instance[-4:] == ".xml":
-            print("INFO: Passed instance is an XML file. "+
+            print("INFO: Passed instance is an XML file. " +
                   "Assuming it is a VRP-REP instance and attempting to translate it...")
             instance = translator.translate(instance)
             print("INFO: Instance translated.")
 
         self.instance = core.FrvcpInstance(instance)
-        self._init_soc = q_init
+        self._q_init = q_init
         self._route = route
         self._multi_insert = multi_insert
+
+        self.solution = None
 
     # TODO add functions to update init_soc/route (would require re-pre-processing whenever called)
 
@@ -130,7 +140,7 @@ class Solver():
         # initialize algorithm
         label_algo = algorithm.FrvcpAlgo(
             self.instance,
-            self._init_soc,
+            self._q_init,
             nodes_gpr,
             adjacencies,
             node_local_id_dep,
@@ -146,13 +156,76 @@ class Solver():
         # run algorithm
         label_algo.run_algo()
 
+        # store solution
+        self.solution = label_algo.get_objective_value(), label_algo.get_optimized_route()
+
         # return results
-        return (label_algo.get_objective_value(), label_algo.get_optimized_route())
+        return copy.deepcopy(self.solution)
+
+    def write_solution(self, filename: str, instance_name: str) -> None:
+        """Writes the current available solution to file.
+
+        Args:
+            filename: The name of the file to which the solution should be written
+            instance_name: The name of the instance that the solution corresponds to
+
+        """
+
+        if self.solution is None:
+            raise ValueError(
+                "Trying to get solution for problem that has not yet been solved.")
+
+        route_nodes = self._get_xml_unparseable_route()
+
+        output_sol = {
+            "solution": {
+                "@instance": instance_name,
+                "route": {
+                    "@id": 0,
+                    "@initialcharge": self._q_init,
+                    "node": route_nodes
+                }
+            }
+        }
+
+        with open(filename, 'w') as sol_file:
+            sol_file.write(xmltodict.unparse(output_sol, pretty=True))
+
+    def _get_xml_unparseable_route(self) -> List:
+        """Returns an XML-unparseable route.
+
+        For the VRP-REP solution format.
+
+        Returns:
+            A list of dicts with ID keys for stops and charge keys for charge
+                amounts
+
+        """
+
+        if self.solution is None:
+            raise ValueError(
+                "Trying to get solution for problem that has not yet been solved.")
+
+        result = []
+        for stop in self.solution[1]:
+            # if stop is not a CS
+            if stop[1] is None:
+                result.append({
+                    '@id': stop[0]
+                })
+            # stop is a CS, needs a charge key
+            else:
+                result.append({
+                    '@id': stop[0],
+                    'charge': stop[1]
+                })
+
+        return result
 
     def _no_recharge_needed(self) -> bool:
         """Returns True if the EV can serve the route without recharging"""
 
-        return self._init_soc >= sum(
+        return self._q_init >= sum(
             [self.instance.energy_matrix[i][j] for i, j in zip(self._route[:-1], self._route[1:])])
 
     def _compute_max_avail_time_detour_charge(self) -> float:
@@ -454,13 +527,46 @@ def main():
                                    help='Allow only one CS to be inserted between stops')
     parser.set_defaults(multi_insert=True)
 
+    optional.add_argument(
+        "-w",
+        "--write",
+        action="store_true",
+        help="Write output to file (specify name with -o NAME)")
+    optional.add_argument(
+        "-o",
+        "--output",
+        type=str,
+        help="Name of file to which to write solution (with -w flag). Default")
+
     parser._action_groups.append(optional)  # re-append the optional arguments
 
     args = parser.parse_args()
 
-    frvcp_solver = Solver(args.instance, [int(stop) for stop in args.route.split(
-        ',')], args.qinit, args.multi_insert)
+    # if an output file was specified, then writing results to file
+    if args.output:
+        args.write = True
+
+    # solve FRVCP
+    route = [int(stop) for stop in args.route.split(',')]
+    frvcp_solver = Solver(args.instance, route, args.qinit, args.multi_insert)
     duration, feas_route = frvcp_solver.solve()
+
+    if args.write:
+
+        instance_wo_ext = os.path.splitext(args.instance)[0]
+
+        # default filename if none provided
+        if args.output is None:
+            route_substr = ''.join(str(stop) for stop in route[:4])
+            q_substr = int(args.qinit)
+            args.output = f"{instance_wo_ext}-r{route_substr}-q{q_substr}.xml"
+
+        # infer instance name from args
+        instance_name = os.path.split(instance_wo_ext)[1]
+
+        frvcp_solver.write_solution(args.output, instance_name=instance_name)
+        print(f"INFO: Solution written to file: {args.output}")
+
     print(f"Duration: {duration:.4}")
     print(f"Energy-feasible route:\n{feas_route}")
 
