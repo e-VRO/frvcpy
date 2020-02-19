@@ -290,10 +290,10 @@ def main():
 
     parser = argparse.ArgumentParser(
         description="A translator for VRP-REP instances to make them compatible with frvcpy")
-    parser.add_argument('from_file', type=str,
+    parser.add_argument('from_filename', type=str,
                         help='Filename for the VRP-REP instance to translate')
     parser.add_argument(
-        'to_file', type=str, help='Filename for the new frvcpy instance to be created')
+        'to_filename', type=str, help='Filename for the new frvcpy instance to be created')
     parser.add_argument(
         "-v",
         "--vtype",
@@ -311,10 +311,10 @@ def main():
 
     args = parser.parse_args()
 
-    print(f"Preparing to translate instance {args.from_file}...")
-    translate(from_filename=args.from_file, to_filename=args.to_file,
+    print(f"Preparing to translate instance {args.from_filename}...")
+    translate(from_filename=args.from_filename, to_filename=args.to_filename,
               v_type=args.vtype, depot_charging=args.depot_cs)
-    print(f"Translated instance file written to {args.to_file}")
+    print(f"Translated instance file written to {args.to_filename}")
 
     sys.exit(0)
 

@@ -67,7 +67,7 @@ from frvcpy import translator
 frvcp_instance = translator.translate("instances/vrprep-instance.xml")
 
 # Option 2) write the translated instance to file
-frvcp_instance = translator.translate("instances/vrprep-instance.xml", to_file="instances/my-new-instance.json")
+frvcp_instance = translator.translate("instances/vrprep-instance.xml", to_filename="instances/my-new-instance.json")
 ```
 
 Or with the command line (only option is to write the translated instance to file):
