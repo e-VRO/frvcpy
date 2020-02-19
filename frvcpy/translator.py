@@ -207,7 +207,6 @@ def translate(
     if precision_type is not None:
         print('WARNING: Using default Python precision. '+
               f'Precision type \'{precision_type}\' ignored.')
-        # TODO add support for different precision types
 
     # vehicle info
     _check_reqd_ev_info(ev)

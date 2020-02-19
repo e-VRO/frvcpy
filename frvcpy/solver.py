@@ -71,8 +71,6 @@ class Solver():
 
         self.solution = None
 
-    # TODO add functions to update init_soc/route (would require re-pre-processing whenever called)
-
     def solve(self) -> Tuple[float, List[Any]]:
         """Solve the FRVCP defined by the instance, route, and intial energy
         provided to the constructor.
@@ -85,12 +83,6 @@ class Solver():
             node ID (int) of the stop and the amount (float) to charge there (None if
             node_i is not a CS).
         """
-
-        # TODO offer a verbose option that would, eg, print times/charges of
-        # arrivals/departs from each node in the sequence
-
-        if self._no_recharge_needed():
-            return [(stop, None) for stop in self._route]
 
         max_detour_charge_time = self._compute_max_avail_time_detour_charge()  # float
 
@@ -162,6 +154,9 @@ class Solver():
         # return results
         return copy.deepcopy(self.solution)
 
+    def _travel_time(self):
+        return sum([self.instance.time_matrix[i][j] for i,j in zip(self._route[:-1],self._route[1:])])
+    
     def write_solution(self, filename: str, instance_name: str) -> None:
         """Writes the current available solution to file.
 
@@ -512,7 +507,6 @@ def main():
         type=str,
         required=True,
         help='Comma-separated list of node IDs defining the route to be made energy-feasible')
-    # TODO for large instances/routes, allow route to be a file containing the list
     required.add_argument(
         '-q',
         '--qinit',
