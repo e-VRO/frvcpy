@@ -2,7 +2,10 @@
 
 Typical usage:
     From the command-line:
-        python -m unittest frvcpy.test.test -v
+        frvcpy-test
+    From python:
+        import frvcpy.test
+        frvcpy.test.runAll()
 
 """
 
