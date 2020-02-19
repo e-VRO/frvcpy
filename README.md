@@ -14,7 +14,18 @@ In a virtual environment with Python 3.6+, frvcpy can be installed via
 pip install frvcpy
 ```
 
-Example problem instances are available in the `instances` directory on the [project's homepage](https://github.com/e-VRO/frvcpy/). For easy access to the example files, we recommend cloning the repository.
+### Testing the installation
+
+```python
+import frvcpy.test
+frvcpy.test.runAll()
+```
+
+Or from the command line:
+
+```bash
+frvcpy-test
+```
 
 ## Using frvcpy
 
@@ -54,6 +65,8 @@ frvcpy --instance=instances/frvcpy-instance.json --route=0,40,12,33,38,16,0 --qi
 
 Solutions are written in the [VRP-REP](http://www.vrp-rep.org/) format for easy importing and visualization with the [VRP-REP Mapper](https://vrp-rep.github.io/mapper/) (_formal solution specification available [here](http://www.vrp-rep.org/resources.html)_).
 
+_Note: Example problem instances are available in the `instances` directory on the [project's homepage](https://github.com/e-VRO/frvcpy/). For easy access to the example files, we recommend cloning the repository._
+
 ## Instance Translation
 
 Instance translation is available for some E-VRP instances formatted according to the VRP-REP specification (_available [here](http://www.vrp-rep.org/resources.html)_).
@@ -63,20 +76,21 @@ Translation can be done with the Python API via
 ```python
 from frvcpy import translator
 
-# Option 1) make instance object to be passed directly to the solver
-frvcp_instance = translator.translate("instances/vrprep-instance.xml")
+# Option 1) write the translated instance to file
+translator.translate("instances/vrprep-instance.xml", to_filename="instances/my-new-instance.json")
 
-# Option 2) write the translated instance to file
-frvcp_instance = translator.translate("instances/vrprep-instance.xml", to_filename="instances/my-new-instance.json")
+# Option 2) make instance object to be passed directly to the solver
+frvcp_instance = translator.translate("instances/vrprep-instance.xml")
 ```
 
-Or with the command line (only option is to write the translated instance to file):
+Or with the command line:
 
 ```bash
+# from CLI, only option is to write translated instance to file
 frvcpy-translate instances/vrprep-instance.xml instances/my-new-instance.json
 ```
 
-##### Note: If an instance ending in ".xml" is passed to the solver, it is assumed to be a VRP-REP instance, and the solver will automatically attempt to translate it.
+_Note: If an instance ending in ".xml" is passed to the solver, it is assumed to be a VRP-REP instance, and the solver will automatically attempt to translate it._
 
 ### Translation requirements for VRP-REP instances
 
