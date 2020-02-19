@@ -60,7 +60,6 @@ class TestFrvcpAlgo(unittest.TestCase):
     def test_evrpnl_instances(self) -> bool:
         """Run solver on each of the E-VRP-NL routes for the instance."""
 
-        # TODO include a few instances in MANIFEST.in (but continue to ignore in git)
         for rte_info in self.results.values():
             frvcp_solver = solver.Solver(
                 self.ref_instance, rte_info['route'], self.q_init)
