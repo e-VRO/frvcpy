@@ -353,8 +353,11 @@ class NodeLabel():
 class FrvcpInstance():
     """An frvcpy-compliant problem instance.
 
-    Note: it is generally suggested that nodes in the instance be ordered such
-    that a depot comes first, then customers, then CSs.
+    Notes:
+        1. The triangle inequality must hold for both the energy and time
+            matrices.
+        2. It is generally suggested that nodes in the instance be ordered
+            such that a depot comes first, then customers, then CSs.
 
     Attributes:
         energy_matrix: Square matrix (List of Lists of numbers) indicating the
@@ -433,6 +436,21 @@ class FrvcpInstance():
         # list of nodes for the vertices in G
         self.nodes_g = self._make_nodes()
 
+    def _verify_triangle_inequality(self, matrix: List[List[float]]) -> bool:
+        """Verifies that the triangle inequality holds for matrix."""
+
+        # Ensure that the matrix is square
+        assert all(len(row) == len(matrix) for row in matrix), "Matrix must be square."
+
+        node_idxs = range(len(matrix))
+        
+        for i in node_idxs:
+            for j in node_idxs:
+                if any(matrix[i][k] + matrix[k][j] < matrix[i][j] for k in node_idxs):
+                    return False
+        
+        return True
+    
     def get_min_energy_to_cs(self, node_id: int) -> float:
         """Calculates the amount of energy needed to get from node node_id to
         the nearest CS.
