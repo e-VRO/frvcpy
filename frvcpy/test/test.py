@@ -17,6 +17,50 @@ import pkg_resources
 from frvcpy import solver
 from frvcpy import translator
 
+def assertDeepAlmostEqual(test_case, expected, actual, *args, **kwargs):
+    """
+    Assert that two complex structures have almost equal contents.
+
+    Compares lists, dicts and tuples recursively. Checks numeric values
+    using test_case's :py:meth:`unittest.TestCase.assertAlmostEqual` and
+    checks all other values with :py:meth:`unittest.TestCase.assertEqual`.
+    Accepts additional positional and keyword arguments and pass those
+    intact to assertAlmostEqual() (that's how you specify comparison
+    precision).
+
+    :param test_case: TestCase object on which we can call all of the basic
+    'assert' methods.
+    :type test_case: :py:class:`unittest.TestCase` object
+
+    See https://github.com/larsbutler/oq-engine/blob/master/tests/utils/helpers.py
+
+    """
+    
+    is_root = not '__trace' in kwargs
+    trace = kwargs.pop('__trace', 'ROOT')
+    try:
+        if isinstance(expected, (int, float, complex)):
+            test_case.assertAlmostEqual(expected, actual, *args, **kwargs)
+        elif isinstance(expected, (list, tuple)):
+            test_case.assertEqual(len(expected), len(actual))
+            for index in range(len(expected)):
+                v1, v2 = expected[index], actual[index]
+                assertDeepAlmostEqual(test_case, v1, v2,
+                                      __trace=repr(index), *args, **kwargs)
+        elif isinstance(expected, dict):
+            test_case.assertEqual(set(expected), set(actual))
+            for key in expected:
+                assertDeepAlmostEqual(test_case, expected[key], actual[key],
+                                      __trace=repr(key), *args, **kwargs)
+        else:
+            test_case.assertEqual(expected, actual)
+    except AssertionError as exc:
+        exc.__dict__.setdefault('traces', []).append(trace)
+        if is_root:
+            trace = ' -> '.join(reversed(exc.traces))
+            exc = AssertionError("%s\nTRACE: %s" % (exc.message, trace))
+        raise exc
+
 
 class TestFrvcpAlgo(unittest.TestCase):
     """Unit tests for the translator and solver/algorithm"""
@@ -46,7 +90,7 @@ class TestFrvcpAlgo(unittest.TestCase):
         """Translate an instance, compare it to a known reference"""
 
         frvcp_instance = translator.translate(self.MANUSCRIPT_INSTANCE)
-        self.assertEqual(frvcp_instance, self.ref_instance)
+        assertDeepAlmostEqual(self, frvcp_instance, self.ref_instance, 3)
 
     def test_manuscript_instance(self):
         """Test the algorithm on the route from the manuscript."""
