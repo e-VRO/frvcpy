@@ -41,7 +41,7 @@ class Solver():
             output)
     """
 
-    def __init__(self, instance, route: List[int], q_init: float, multi_insert: bool = True):
+    def __init__(self, instance, route: List[int], q_init: float, multi_insert: bool = True, check_tri: bool = False):
         """Initiates a Solver for the FRVCP.
 
         Args:
@@ -49,12 +49,15 @@ class Solver():
                 dictionary containing the required info. Typically the problem
                 instance is already in a compliant JSON file. However, if a
                 filename ending in ".xml" is passed, it is assumed to be a
-                VRP-REP instance, and it will attempt to be translated.
+                VRP-REP instance, and it will be translated.
             route: A list of integers representing the fixed route to be
                 traveled by the vehicle
             q_init: The energy with which the EV begins the route
             multi_insert: A boolean specifying whether the EV is allowed to
                 visit multiple CSs between stops in the route
+            check_tri: A boolean specifying whether to verify that the triangle
+                inequality holds for the instance's time and energy matrices.
+                Default is False, since this adds significant computation time.
 
         """
         # if passed an XML file, attempt to translate it
@@ -64,7 +67,7 @@ class Solver():
             instance = translator.translate(instance)
             print("INFO: Instance translated.")
 
-        self.instance = core.FrvcpInstance(instance)
+        self.instance = core.FrvcpInstance(instance, check_tri)
         self._q_init = q_init
         self._route = route
         self._multi_insert = multi_insert
@@ -522,6 +525,11 @@ def main():
     parser.set_defaults(multi_insert=True)
 
     optional.add_argument(
+        "-c",
+        "--check-tri",
+        action="store_true",
+        help="Check that the triangle inequality holds for the passed instance")
+    optional.add_argument(
         "-w",
         "--write",
         action="store_true",
@@ -542,7 +550,7 @@ def main():
 
     # solve FRVCP
     route = [int(stop) for stop in args.route.split(',')]
-    frvcp_solver = Solver(args.instance, route, args.qinit, args.multi_insert)
+    frvcp_solver = Solver(args.instance, route, args.qinit, args.multi_insert, args.check_tri)
     duration, feas_route = frvcp_solver.solve()
 
     if args.write:

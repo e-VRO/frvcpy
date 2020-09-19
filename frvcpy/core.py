@@ -42,7 +42,7 @@ class HeapElement():
 
     Since the data type used for heap nodes in the labeling
     algorithm is just int, this object is largely unnecessary.
-    We keep it here to maintain consistency
+    We keep it here to maintain consistency.
     """
 
     def __init__(self, data: Any):
@@ -388,12 +388,14 @@ class FrvcpInstance():
 
     """
 
-    def __init__(self, instance):
+    def __init__(self, instance, check_tri: bool = False):
         """Instantiates an FRVCP problem instance.
         
         Args:
             instance: either the filename (str) of a compatible problem instance
-                or a dictionary containing the required info
+                or a dictionary containing the required info.
+            check_tri: whether to verify that the triangle inequality holds for
+                the instance's energy and time matrices.
 
         """
         # if string, assumed to be filename
@@ -401,12 +403,18 @@ class FrvcpInstance():
             with open(instance) as instance_file:
                 instance = json.load(instance_file)
 
-        self._store_instance_parameters(instance)
+        self._store_instance_parameters(instance, check_tri)
 
-    def _store_instance_parameters(self, instance):
+    def _store_instance_parameters(self, instance, check_tri: bool = False):
         # [i][j] are indices in g, not gprime
         self.energy_matrix = instance["energy_matrix"]
         self.time_matrix = instance["time_matrix"]
+        if check_tri:
+            if not self._triangle_inequality_holds(self.energy_matrix):
+                raise ValueError("The triangle inequality does not hold for the instance's energy_matrix.")
+            if not self._triangle_inequality_holds(self.time_matrix):
+                raise ValueError("The triangle inequality does not hold for the instance's time_matrix.")
+
         self.process_times = instance["process_times"] if "process_times" in instance else [
             0 for _ in self.energy_matrix]
         # number of nodes in the underlying graph G
@@ -436,7 +444,7 @@ class FrvcpInstance():
         # list of nodes for the vertices in G
         self.nodes_g = self._make_nodes()
 
-    def _verify_triangle_inequality(self, matrix: List[List[float]]) -> bool:
+    def _triangle_inequality_holds(self, matrix: List[List[float]]) -> bool:
         """Verifies that the triangle inequality holds for matrix."""
 
         # Ensure that the matrix is square
