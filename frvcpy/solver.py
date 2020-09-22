@@ -157,7 +157,7 @@ class Solver():
         # return results
         return copy.deepcopy(self.solution)
 
-    def _travel_time(self):
+    def _direct_route_travel_time(self):
         return sum([self.instance.time_matrix[i][j] for i,j in zip(self._route[:-1],self._route[1:])])
     
     def write_solution(self, filename: str, instance_name: str) -> None:
@@ -220,8 +220,8 @@ class Solver():
 
         return result
 
-    def _no_recharge_needed(self) -> bool:
-        """Returns True if the EV can serve the route without recharging"""
+    def _direct_route_without_recharge(self) -> bool:
+        """Returns True if the EV can travel the route directly without recharging."""
 
         return self._q_init >= sum(
             [self.instance.energy_matrix[i][j] for i, j in zip(self._route[:-1], self._route[1:])])
