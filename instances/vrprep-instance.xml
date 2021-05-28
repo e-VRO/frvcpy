@@ -6,220 +6,220 @@
   </info>
   <network>
     <nodes>
-      <node id="0" type="0">
+      <node id="0" type="Depot" >
         <cx>66.35</cx>
         <cy>46.7</cy>
       </node>
-      <node id="1" type="1">
+      <node id="1" type="Customer" >
         <cx>103.6</cx>
         <cy>32.56</cy>
       </node>
-      <node id="2" type="1">
+      <node id="2" type="Customer" >
         <cx>2.43</cx>
         <cy>99.47</cy>
       </node>
-      <node id="3" type="1">
+      <node id="3" type="Customer" >
         <cx>13.73</cx>
         <cy>53.82</cy>
       </node>
-      <node id="4" type="1">
+      <node id="4" type="Customer" >
         <cx>30.34</cx>
         <cy>92.6</cy>
       </node>
-      <node id="5" type="1">
+      <node id="5" type="Customer" >
         <cx>2.19</cx>
         <cy>92.44</cy>
       </node>
-      <node id="6" type="1">
+      <node id="6" type="Customer" >
         <cx>48.24</cx>
         <cy>18.8</cy>
       </node>
-      <node id="7" type="1">
+      <node id="7" type="Customer" >
         <cx>98.69</cx>
         <cy>103.7</cy>
       </node>
-      <node id="8" type="1">
+      <node id="8" type="Customer" >
         <cx>43.04</cx>
         <cy>20.13</cy>
       </node>
-      <node id="9" type="1">
+      <node id="9" type="Customer" >
         <cx>66.87</cx>
         <cy>0.21</cy>
       </node>
-      <node id="10" type="1">
+      <node id="10" type="Customer" >
         <cx>19.68</cx>
         <cy>35.74</cy>
       </node>
-      <node id="11" type="1">
+      <node id="11" type="Customer" >
         <cx>70.34</cx>
         <cy>78.93</cy>
       </node>
-      <node id="12" type="1">
+      <node id="12" type="Customer" >
         <cx>12.7</cx>
         <cy>76.68</cy>
       </node>
-      <node id="13" type="1">
+      <node id="13" type="Customer" >
         <cx>8.69</cx>
         <cy>14.26</cy>
       </node>
-      <node id="14" type="1">
+      <node id="14" type="Customer" >
         <cx>100.97</cx>
         <cy>14.58</cy>
       </node>
-      <node id="15" type="1">
+      <node id="15" type="Customer" >
         <cx>101.81</cx>
         <cy>82.43</cy>
       </node>
-      <node id="16" type="1">
+      <node id="16" type="Customer" >
         <cx>34.65</cx>
         <cy>74.17</cy>
       </node>
-      <node id="17" type="1">
+      <node id="17" type="Customer" >
         <cx>83.7</cx>
         <cy>70.07</cy>
       </node>
-      <node id="18" type="1">
+      <node id="18" type="Customer" >
         <cx>83.66</cx>
         <cy>18.69</cy>
       </node>
-      <node id="19" type="1">
+      <node id="19" type="Customer" >
         <cx>13.63</cx>
         <cy>1.03</cy>
       </node>
-      <node id="20" type="1">
+      <node id="20" type="Customer" >
         <cx>0.07</cx>
         <cy>10.85</cy>
       </node>
-      <node id="21" type="1">
+      <node id="21" type="Customer" >
         <cx>22.82</cx>
         <cy>110.76</cy>
       </node>
-      <node id="22" type="1">
+      <node id="22" type="Customer" >
         <cx>34.44</cx>
         <cy>118.78</cy>
       </node>
-      <node id="23" type="1">
+      <node id="23" type="Customer" >
         <cx>49.33</cx>
         <cy>6.52</cy>
       </node>
-      <node id="24" type="1">
+      <node id="24" type="Customer" >
         <cx>116.98</cx>
         <cy>17.23</cy>
       </node>
-      <node id="25" type="1">
+      <node id="25" type="Customer" >
         <cx>91.31</cx>
         <cy>34.02</cy>
       </node>
-      <node id="26" type="1">
+      <node id="26" type="Customer" >
         <cx>9.36</cx>
         <cy>8.8</cy>
       </node>
-      <node id="27" type="1">
+      <node id="27" type="Customer" >
         <cx>90.84</cx>
         <cy>7.77</cy>
       </node>
-      <node id="28" type="1">
+      <node id="28" type="Customer" >
         <cx>91.46</cx>
         <cy>18.12</cy>
       </node>
-      <node id="29" type="1">
+      <node id="29" type="Customer" >
         <cx>85.86</cx>
         <cy>92.32</cy>
       </node>
-      <node id="30" type="1">
+      <node id="30" type="Customer" >
         <cx>29.69</cx>
         <cy>53.99</cy>
       </node>
-      <node id="31" type="1">
+      <node id="31" type="Customer" >
         <cx>96.71</cx>
         <cy>105.59</cy>
       </node>
-      <node id="32" type="1">
+      <node id="32" type="Customer" >
         <cx>119.57</cx>
         <cy>30.18</cy>
       </node>
-      <node id="33" type="1">
+      <node id="33" type="Customer" >
         <cx>27.18</cx>
         <cy>92.94</cy>
       </node>
-      <node id="34" type="1">
+      <node id="34" type="Customer" >
         <cx>5.03</cx>
         <cy>25.14</cy>
       </node>
-      <node id="35" type="1">
+      <node id="35" type="Customer" >
         <cx>16.05</cx>
         <cy>52.15</cy>
       </node>
-      <node id="36" type="1">
+      <node id="36" type="Customer" >
         <cx>30.51</cx>
         <cy>3.99</cy>
       </node>
-      <node id="37" type="1">
+      <node id="37" type="Customer" >
         <cx>96.08</cx>
         <cy>94.6</cy>
       </node>
-      <node id="38" type="1">
+      <node id="38" type="Customer" >
         <cx>39.12</cx>
         <cy>83.35</cy>
       </node>
-      <node id="39" type="1">
+      <node id="39" type="Customer" >
         <cx>101.25</cx>
         <cy>66.55</cy>
       </node>
-      <node id="40" type="1">
+      <node id="40" type="Customer" >
         <cx>31.42</cx>
         <cy>70.02</cy>
       </node>
-      <node id="41" type="2">
+      <node id="41" type="Charging_Station" >
         <cx>45.98</cx>
         <cy>101.25</cy>
         <custom>
           <cs_type>slow</cs_type>
         </custom>
       </node>
-      <node id="42" type="2">
+      <node id="42" type="Charging_Station" >
         <cx>109.46</cx>
         <cy>77.4</cy>
         <custom>
           <cs_type>normal</cs_type>
         </custom>
       </node>
-      <node id="43" type="2">
+      <node id="43" type="Charging_Station" >
         <cx>59.33</cx>
         <cy>116.53</cy>
         <custom>
           <cs_type>fast</cs_type>
         </custom>
       </node>
-      <node id="44" type="2">
+      <node id="44" type="Charging_Station" >
         <cx>36.27</cx>
         <cy>42.55</cy>
         <custom>
           <cs_type>slow</cs_type>
         </custom>
       </node>
-      <node id="45" type="2">
+      <node id="45" type="Charging_Station" >
         <cx>81.08</cx>
         <cy>118.6</cy>
         <custom>
           <cs_type>slow</cs_type>
         </custom>
       </node>
-      <node id="46" type="2">
+      <node id="46" type="Charging_Station" >
         <cx>89.45</cx>
         <cy>52.44</cy>
         <custom>
           <cs_type>slow</cs_type>
         </custom>
       </node>
-      <node id="47" type="2">
+      <node id="47" type="Charging_Station" >
         <cx>54.36</cx>
         <cy>37.6</cy>
         <custom>
           <cs_type>fast</cs_type>
         </custom>
       </node>
-      <node id="48" type="2">
+      <node id="48" type="Charging_Station" >
         <cx>53.24</cx>
         <cy>96.49</cy>
         <custom>
@@ -231,7 +231,7 @@
     <decimals>14</decimals>
   </network>
   <fleet>
-    <vehicle_profile type="0">
+    <vehicle_profile type="0" >
       <departure_node>0</departure_node>
       <arrival_node>0</arrival_node>
       <max_travel_time>10</max_travel_time>
