@@ -4,7 +4,7 @@
 
 ## What is an FRVCP?
 
-Given an elctric vehicle (EV) that's been assigned some sequence of locations to visit (a _fixed route_), the __fixed route vehicle charging problem__ (FRVCP) is the problem of finding the optimal insertion of recharging operations into the route that minimize the time required for the EV to traverse that route in an energy-feasible manner.
+Given an electric vehicle (EV) that's been assigned some sequence of locations to visit (a _fixed route_), the __fixed route vehicle charging problem__ (FRVCP) is the problem of finding the optimal insertion of recharging operations into the route that minimize the time required for the EV to traverse that route in an energy-feasible manner.
 
 ## Installation
 
