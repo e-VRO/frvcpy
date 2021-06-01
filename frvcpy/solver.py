@@ -173,6 +173,9 @@ class Solver():
             raise ValueError(
                 "Trying to get solution for problem that has not yet been solved.")
 
+        if self.solution[1] is None:
+            raise ValueError("No feasible solution was found.")
+
         route_nodes = self._get_xml_unparseable_route()
 
         output_sol = {
